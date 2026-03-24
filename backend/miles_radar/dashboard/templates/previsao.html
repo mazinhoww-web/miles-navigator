@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+{% set active_page = 'previsao' %}
+{% block title %}Previsão — Miles Radar{% endblock %}
+{% block page_title %}Previsão Preditiva{% endblock %}
+
+{% block content %}
+
+<!-- Disclaimer metodológico -->
+<div class="mb-5 p-4 rounded-xl border border-gray-700 bg-gray-800/40 text-xs text-gray-400 leading-relaxed">
+  <strong class="text-gray-300">Nota metodológica:</strong>
+  Previsões são estimativas estatísticas baseadas em padrões históricos de até 36 meses (intervalos entre campanhas, sazonalidade, calendário de eventos recorrentes). Promoções dependem de decisões comerciais dos programas. Eventos de calendário (aniversários de programas, datas comemorativas) têm maior confiabilidade por serem recorrentes há 3+ anos. Confiança "Alta/Muito Alta" indica que os dados históricos sustentam a estimativa — não é garantia.
+</div>
+
+<!-- Controles -->
+<div class="flex flex-wrap gap-3 mb-5">
+  <div class="flex items-center gap-2">
+    <span class="text-xs text-gray-400">Horizonte</span>
+    <div class="flex gap-1 bg-gray-800 rounded-lg p-1">
+      <button onclick="setH(7,this)"  class="hbtn px-3 py-1 rounded text-xs font-medium text-gray-500 hover:text-gray-300">7 dias</button>
+      <button onclick="setH(15,this)" class="hbtn px-3 py-1 rounded text-xs font-medium text-gray-500 hover:text-gray-300">15 dias</button>
+      <button onclick="setH(30,this)" class="hbtn px-3 py-1 rounded text-xs font-medium bg-gray-700 text-white">30 dias</button>
+    </div>
+  </div>
+  <span class="ml-auto text-xs text-gray-600" id="pred-meta"></span>
+</div>
+
+<!-- Heatmap de probabilidade por rota -->
+<div class="glass rounded-xl p-5 mb-5">
+  <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-3">Probabilidade de campanha por rota</div>
+  <div id="heatmap" class="overflow-x-auto"></div>
+  <div class="flex items-center gap-2 mt-3 text-xs text-gray-600">
+    <span>Baixa</span>
+    <div class="flex gap-1">
+      <div class="w-5 h-4 rounded" style="background:rgba(245,158,11,.1)"></div>
+      <div class="w-5 h-4 rounded" style="background:rgba(245,158,11,.3)"></div>
+      <div class="w-5 h-4 rounded" style="background:rgba(245,158,11,.6)"></div>
+      <div class="w-5 h-4 rounded" style="background:rgba(245,158,11,.9)"></div>
+    </div>
+    <span>Alta probabilidade</span>
+  </div>
+</div>
+
+<!-- Cards de previsão com prob > 35% -->
+<h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Previsões com relevância — ordenadas por probabilidade</h2>
+<div id="pred-cards" class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5"></div>
+
+<!-- Calendário de eventos -->
+<div class="glass rounded-xl p-5 mb-5">
+  <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-3">Calendário de eventos previsíveis — próximos 180 dias</div>
+  <div id="events-list" class="space-y-2"></div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let curH = 30;
+const URGENCY_COLORS = {
+  ACAO_IMINENTE:  {border:'border-red-500/60',   bg:'rgba(239,68,68,.08)',  dot:'bg-red-500',   text:'text-red-400',   pulse:true},
+  ALTA_PROB:      {border:'border-yellow-500/40', bg:'rgba(245,158,11,.07)',dot:'bg-yellow-500',text:'text-yellow-400', pulse:true},
+  MONITORAR:      {border:'border-blue-500/30',   bg:'rgba(59,130,246,.05)',dot:'bg-blue-500',  text:'text-blue-400',  pulse:false},
+  AGUARDAR:       {border:'border-gray-700',       bg:'transparent',         dot:'bg-gray-600',  text:'text-gray-500',  pulse:false},
+};
+const CONF_COLORS={
+  'Muito Alta':'text-green-400','Alta':'text-green-300','Moderada':'text-yellow-400',
+  'Baixa':'text-orange-400','Muito Baixa':'text-red-400','Baseada em calendário':'text-purple-400',
+};
+
+function setH(h,btn){curH=h;document.querySelectorAll('.hbtn').forEach(b=>{b.className='hbtn px-3 py-1 rounded text-xs font-medium text-gray-500 hover:text-gray-300';});btn.className='hbtn px-3 py-1 rounded text-xs font-medium bg-gray-700 text-white';load();}
+
+async function load(){
+  const [allRes, evRes] = await Promise.all([
+    fetch(`/api/predictions/all?horizon=${curH}`),
+    fetch('/api/predictions/events?days_ahead=180'),
+  ]);
+  const [all, evData] = [await allRes.json(), await evRes.json()];
+  const preds = all.predictions || [];
+  document.getElementById('pred-meta').textContent =
+    `${preds.length} rotas analisadas · horizonte ${curH} dias`;
+  renderHeatmap(preds);
+  renderCards(preds);
+  renderEvents(evData.events || []);
+  setLastUpdate();
+}
+
+function probKey(h){ return h<=7?'prob_7d':h<=15?'prob_15d':'prob_30d'; }
+
+function renderHeatmap(preds){
+  const pk = probKey(curH);
+  const progs = ['LATAM Pass','Smiles','Azul Fidelidade'];
+  const origins = ['Livelo','Esfera','Itaú','Nubank','C6','Qualquer'];
+
+  const getProb = (orig,dest) => {
+    const origFull = {'Itaú':'Iupp Itaú','Nubank':'Nubank Rewards','C6':'C6 Átomos','Qualquer':null}[orig]||orig;
+    const p = preds.find(r=>r.destination===dest&&(origFull===null?!r.origin:r.origin===origFull));
+    return p ? Math.round((p[pk]||0)*100) : 0;
+  };
+
+  let html = `<table class="text-xs" style="min-width:420px"><thead><tr>
+    <th class="text-left text-gray-600 font-normal pb-2 pr-3 w-20">Origem ↓ / Destino →</th>`;
+  progs.forEach(p=>{ html += `<th class="text-center text-gray-400 font-medium pb-2 px-2">${p.replace(' Fidelidade','')}</th>`; });
+  html += '</tr></thead><tbody>';
+  origins.forEach(o=>{
+    html += `<tr><td class="pr-3 py-1 text-gray-500">${o}</td>`;
+    progs.forEach(d=>{
+      const v=getProb(o,d);
+      const a=(v/100*0.75+0.06).toFixed(2);
+      const tc=v>60?'#92400E':v>30?'#78350F':'rgba(245,158,11,.4)';
+      html += `<td class="text-center py-1 px-2"><div class="mx-auto rounded w-14 h-8 flex items-center justify-center text-xs font-medium cursor-default" style="background:rgba(245,158,11,${a});color:${tc}" title="${o}→${d}: ${v}%">${v}%</div></td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('heatmap').innerHTML = html;
+}
+
+function renderCards(preds){
+  const pk = probKey(curH);
+  const relevant = preds.filter(p=>(p[pk]||0)>=0.30||p.active_calendar_events?.length>0);
+  if(relevant.length===0){
+    document.getElementById('pred-cards').innerHTML='<div class="text-gray-600 text-sm col-span-2 text-center py-8">Sem previsões com alta probabilidade no horizonte de '+curH+' dias.</div>';
+    return;
+  }
+  document.getElementById('pred-cards').innerHTML = relevant.map(p=>{
+    const urg = URGENCY_COLORS[p.urgency]||URGENCY_COLORS.AGUARDAR;
+    const probVal = Math.round((p[pk]||0)*100);
+    const confColor = CONF_COLORS[p.confidence]||'text-gray-400';
+    const route = [p.origin||'Qualquer origem', p.destination||'Qualquer destino'].join(' → ');
+    const eventNames = (p.active_calendar_events||[]).slice(0,2).map(e=>e.name).join(', ');
+
+    return `<div class="glass rounded-xl p-5 border ${urg.border}" style="background:${urg.bg}">
+      <!-- Header -->
+      <div class="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <div class="w-2 h-2 rounded-full flex-shrink-0 ${urg.dot} ${urg.pulse?'animate-pulse':''}"></div>
+            <span class="text-xs font-semibold ${urg.text} uppercase tracking-wide">${p.urgency_label}</span>
+          </div>
+          <div class="text-sm font-medium text-white">${route}</div>
+          ${eventNames?`<div class="text-xs text-purple-400 mt-0.5">📅 ${eventNames}</div>`:''}
+        </div>
+        <div class="text-right flex-shrink-0">
+          <div class="text-2xl font-bold font-sora ${urg.text}">${probVal}%</div>
+          <div class="text-xs text-gray-500">${curH}d</div>
+        </div>
+      </div>
+
+      <!-- Barras de probabilidade -->
+      <div class="space-y-1.5 mb-4">
+        ${[7,15,30].map(h=>{
+          const pv=Math.round((p['prob_'+h+'d']||0)*100);
+          const c=pv>60?'#10B981':pv>35?'#F59E0B':'#3B82F6';
+          return `<div class="flex items-center gap-2 text-xs">
+            <span class="text-gray-500 w-5">${h}d</span>
+            <div class="flex-1 h-2 bg-gray-800 rounded overflow-hidden">
+              <div class="h-full rounded" style="width:${pv}%;background:${c}"></div>
+            </div>
+            <span class="font-medium" style="color:${c}">${pv}%</span>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <!-- Bônus esperado + VPP -->
+      <div class="grid grid-cols-2 gap-2 mb-3">
+        <div class="bg-gray-800/60 rounded-lg p-2 text-center">
+          <div class="text-xs text-gray-500">Bônus esperado</div>
+          <div class="text-base font-bold font-sora text-yellow-400">
+            ${p.bonus_expected_max?p.bonus_expected_max+'%':'—'}
+          </div>
+          ${p.bonus_range_p25&&p.bonus_range_p75?`<div class="text-xs text-gray-600">range ${p.bonus_range_p25}–${p.bonus_range_p75}%</div>`:''}
+        </div>
+        <div class="bg-gray-800/60 rounded-lg p-2 text-center">
+          <div class="text-xs text-gray-500">Próxima estimada</div>
+          <div class="text-sm font-semibold text-white">
+            ${p.expected_next_days!=null?(p.expected_next_days===0?'Hoje ou amanhã':p.expected_next_days+' dias'):'—'}
+          </div>
+          ${p.expected_next_date?`<div class="text-xs text-gray-600">${p.expected_next_date}</div>`:''}
+        </div>
+      </div>
+
+      <!-- Evidências -->
+      ${p.evidence&&p.evidence.length?`<div class="text-xs text-gray-500 space-y-0.5 mb-3">${p.evidence.map(e=>`<div>• ${e}</div>`).join('')}</div>`:''}
+
+      <!-- Footer: confiança + duração -->
+      <div class="flex items-center justify-between text-xs">
+        <span class="text-gray-600">Confiança: <span class="${confColor}">${p.confidence}</span></span>
+        <span class="text-gray-600">${p.duration_expected_days}d estimado · ${Math.round((p.flash_probability||0)*100)}% flash</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderEvents(events){
+  const CONF_BADGES={
+    'MUITO ALTA':'bg-green-900/50 text-green-400 border border-green-700/50',
+    'ALTA':'bg-blue-900/50 text-blue-400 border border-blue-700/50',
+    'MODERADA':'bg-yellow-900/50 text-yellow-400 border border-yellow-700/50',
+  };
+  document.getElementById('events-list').innerHTML = events.map(e=>`
+    <div class="flex items-start gap-3 p-3 rounded-lg bg-gray-800/50">
+      <div class="text-center flex-shrink-0 w-14">
+        <div class="text-lg font-bold font-sora text-yellow-400">${e.days_until}d</div>
+        <div class="text-xs text-gray-600">${e.start_date?.slice(5)}</div>
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-medium text-white">${e.name}</div>
+        <div class="text-xs text-gray-500 mt-0.5">${(e.programs||[]).join(' · ')} · Bônus esperado: ${e.expected_bonus}%</div>
+      </div>
+      <span class="text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${CONF_BADGES[e.confidence]||CONF_BADGES['ALTA']}">${e.confidence}</span>
+    </div>`).join('') || '<div class="text-gray-600 text-sm py-4 text-center">Nenhum evento nos próximos 180 dias.</div>';
+}
+
+load();
+</script>
+{% endblock %}

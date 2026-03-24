@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% set active_page = 'vpp' %}
+{% block title %}VPP — Miles Radar{% endblock %}
+{% block page_title %}VPP — Valor Por Ponto{% endblock %}
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4 p-4 rounded-xl border border-yellow-500/20 bg-yellow-500/5 text-sm text-yellow-200/80 leading-relaxed">
+  <strong class="text-yellow-400">Como ler este painel:</strong>
+  VPP Real = custo efetivo para adquirir 1.000 milhas via compra de pontos + transferência bonificada.
+  Valor-alvo = preço máximo considerado "bom negócio" pelo mercado (Melhores Destinos, dez/2025).
+  <strong>Economia/1k</strong> = quanto você paga A MENOS que o valor-alvo. Positivo = vantajoso.
+</div>
+
+<!-- Controles -->
+<div class="flex flex-wrap gap-3 mb-5">
+  <div class="flex items-center gap-2">
+    <span class="text-xs text-gray-400">Janela</span>
+    <div class="flex gap-1 bg-gray-800 rounded-lg p-1">
+      {% for w in [3,6,12,18,24,36] %}
+      <button onclick="setW({{w}},this)"
+        class="wbtn px-3 py-1 rounded text-xs font-medium {% if w==12 %}bg-gray-700 text-white{% else %}text-gray-500 hover:text-gray-300{% endif %}">{{w}}m</button>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="flex items-center gap-2">
+    <span class="text-xs text-gray-400">Programa</span>
+    <select id="dest-sel" onchange="load()"
+      class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white">
+      <option value="">Todos</option>
+      <option value="LATAM Pass">LATAM Pass</option>
+      <option value="Smiles">Smiles</option>
+      <option value="Azul Fidelidade">Azul Fidelidade</option>
+    </select>
+  </div>
+</div>
+
+<!-- Tabela de referência VPP -->
+<div class="glass rounded-xl p-5 mb-5">
+  <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-3">Valores de referência (Melhores Destinos, dez/2025)</div>
+  <div class="grid grid-cols-3 gap-4">
+    <div class="bg-gray-800/60 rounded-xl p-4 text-center">
+      <div class="text-xs text-gray-500 mb-1">Smiles</div>
+      <div class="text-2xl font-bold font-sora text-yellow-400">R$16</div>
+      <div class="text-xs text-gray-600 mt-1">valor-alvo por 1k milhas</div>
+    </div>
+    <div class="bg-gray-800/60 rounded-xl p-4 text-center">
+      <div class="text-xs text-gray-500 mb-1">LATAM Pass</div>
+      <div class="text-2xl font-bold font-sora text-blue-400">R$25</div>
+      <div class="text-xs text-gray-600 mt-1">maior spread do mercado</div>
+    </div>
+    <div class="bg-gray-800/60 rounded-xl p-4 text-center">
+      <div class="text-xs text-gray-500 mb-1">Azul Fidelidade</div>
+      <div class="text-2xl font-bold font-sora text-purple-400">R$14</div>
+      <div class="text-xs text-gray-600 mt-1">CPM mínimo R$11 (Clube 5a)</div>
+    </div>
+  </div>
+</div>
+
+<!-- KPIs VPP -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5" id="vpp-kpis"></div>
+
+<!-- Gráfico VPP real vs valor-alvo + Ranking de ações -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+  <div class="glass rounded-xl p-5 lg:col-span-2">
+    <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-1">VPP real ao longo do tempo vs valor-alvo</div>
+    <div class="text-xs text-gray-600 mb-3">Quanto mais abaixo da linha tracejada, melhor a oportunidade</div>
+    <div style="position:relative;height:200px"><canvas id="vppChart"></canvas></div>
+  </div>
+  <div class="glass rounded-xl p-5">
+    <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-3">Ranking de ações por economia</div>
+    <div id="action-rank" class="space-y-2"></div>
+  </div>
+</div>
+
+<!-- Waterfall de VPP por perfil -->
+<div class="glass rounded-xl p-5 mb-5">
+  <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-1">VPP Real por perfil — Livelo como origem (CPM R$29,50)</div>
+  <div class="text-xs text-gray-600 mb-4">Quanto maior o bônus, menor o custo real da milha</div>
+  <div id="waterfall" class="space-y-3"></div>
+</div>
+
+<!-- Volatilidade -->
+<div class="glass rounded-xl p-5">
+  <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-3">Volatilidade do VPP por programa</div>
+  <div class="text-xs text-gray-600 mb-4">Desvio padrão — quanto menor, mais previsível o programa para planejamento</div>
+  <div id="volatility" class="space-y-2"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let curW = 12, vppChart = null;
+const GC='rgba(255,255,255,.05)', TC='#4B5563';
+const PROG_COLORS={'LATAM Pass':'#3B82F6','Smiles':'#F59E0B','Azul Fidelidade':'#8B5CF6'};
+const VPP_TARGETS={'Smiles':16,'LATAM Pass':25,'Azul Fidelidade':14};
+const CPM_LIVELO = 29.50;
+
+const WATERFALL_TIERS = [
+  {name:'Base (sem clube)',bonus:50,color:'#6B7280'},
+  {name:'Clube ativo',bonus:70,color:'#3B82F6'},
+  {name:'Clube + Cartão Itaú',bonus:80,color:'#10B981'},
+  {name:'Diamante + Clube',bonus:100,color:'#F59E0B'},
+];
+
+function setW(w,btn){curW=w;document.querySelectorAll('.wbtn').forEach(b=>{b.className='wbtn px-3 py-1 rounded text-xs font-medium text-gray-500 hover:text-gray-300';});btn.className='wbtn px-3 py-1 rounded text-xs font-medium bg-gray-700 text-white';load();}
+
+async function load(){
+  const dest = document.getElementById('dest-sel').value;
+  const params = new URLSearchParams({months:curW});
+  if(dest) params.set('destination',dest);
+  const [vppRes, allRes] = await Promise.all([
+    fetch('/api/vpp?'+params),
+    fetch('/api/vpp/all?months='+curW),
+  ]);
+  const [vpp, all] = [await vppRes.json(), await allRes.json()];
+  renderKpis(vpp);
+  renderChart(vpp);
+  renderActionRank(vpp);
+  renderWaterfall(dest);
+  renderVolatility(all.programs);
+  setLastUpdate();
+}
+
+function renderKpis(d){
+  const tm=d.trend_meaning==='melhorando'?'↓ melhorando':d.trend_meaning==='piorando'?'↑ piorando':'→ estável';
+  const tmColor=d.trend_meaning==='melhorando'?'#10B981':d.trend_meaning==='piorando'?'#EF4444':'#6B7280';
+  const econ = d.vpp_min && d.vpp_target ? (d.vpp_target - d.vpp_min).toFixed(2) : null;
+  const econColor = econ && parseFloat(econ)>0 ? '#10B981' : '#EF4444';
+  document.getElementById('vpp-kpis').innerHTML=[
+    {l:'VPP mínimo histórico',v:d.vpp_min?'R$'+d.vpp_min:'—',s:d.vpp_target?`alvo: R$${d.vpp_target}`:'' ,c:'#F59E0B'},
+    {l:'Economia máx/1k',v:econ?'+R$'+econ:'—',s:'vs valor-alvo de mercado',c:econColor},
+    {l:'Tendência VPP',v:tm,s:`${d.total} ações na janela`,c:tmColor},
+    {l:'Volatilidade',v:d.volatility?'±R$'+d.volatility:'—',s:'desvio padrão histórico',c:'#8B5CF6'},
+  ].map(k=>`<div class="glass rounded-xl p-4 relative overflow-hidden"><div class="accent-bar absolute left-0 top-0 bottom-0" style="background:${k.c}"></div><div class="pl-2"><div class="text-xs text-gray-500 mb-1">${k.l}</div><div class="kpi-val text-lg font-semibold" style="color:${k.c}">${k.v}</div><div class="text-xs text-gray-600 mt-1">${k.s}</div></div></div>`).join('');
+}
+
+function renderChart(d){
+  if(!d.monthly_series||d.monthly_series.length===0){
+    document.getElementById('vppChart').parentElement.innerHTML='<div class="text-gray-600 text-sm text-center py-8">Dados insuficientes. Aguardando bootstrap histórico.</div>';
+    return;
+  }
+  const labels=d.monthly_series.map(m=>m.month);
+  const vals=d.monthly_series.map(m=>m.avg_vpp);
+  const target=d.vpp_target;
+  const targetLine=target?new Array(vals.length).fill(target):[];
+  const dest=document.getElementById('dest-sel').value||'Smiles';
+  const color=PROG_COLORS[dest]||'#F59E0B';
+  if(vppChart)vppChart.destroy();
+  vppChart=new Chart(document.getElementById('vppChart'),{type:'line',data:{labels,datasets:[
+    {label:'VPP real',data:vals,borderColor:color,backgroundColor:color+'15',fill:true,tension:.35,borderWidth:2,pointRadius:3,pointBackgroundColor:color},
+    ...(target?[{label:'Valor-alvo',data:targetLine,borderColor:'#10B981',backgroundColor:'transparent',tension:0,borderWidth:1.5,borderDash:[5,4],pointRadius:0}]:[]),
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label}: R$${c.parsed.y}/1k`}}},scales:{x:{ticks:{color:TC,font:{size:10},maxTicksLimit:10},grid:{color:GC}},y:{ticks:{color:TC,font:{size:10},callback:v=>'R$'+v},grid:{color:GC}}}}});
+}
+
+function renderActionRank(d){
+  const actions=d.best_actions||[];
+  const ECLASS={EXCELENTE:'text-green-400',BOM:'text-blue-400',NEUTRO:'text-gray-500',AGUARDAR:'text-red-400'};
+  document.getElementById('action-rank').innerHTML=actions.slice(0,6).map((a,i)=>`
+    <div class="flex items-center gap-2 p-2 rounded-lg bg-gray-800/50">
+      <span class="text-gray-600 text-xs w-4">${i+1}</span>
+      <div class="flex-1 min-w-0">
+        <div class="text-xs font-medium text-gray-300 truncate">${a.route}</div>
+        <div class="text-xs text-gray-600">${a.best_bonus||'?'}% bônus</div>
+      </div>
+      <div class="text-right">
+        <div class="text-xs font-medium ${ECLASS[a.classification]||'text-gray-400'}">${a.economy_per_k?'+R$'+a.economy_per_k.toFixed(2):a.vpp_real?'R$'+a.vpp_real:'—'}</div>
+        <div class="text-xs text-gray-600">${a.classification}</div>
+      </div>
+    </div>`).join('')||'<div class="text-gray-600 text-sm">Sem ações com VPP calculado no período.</div>';
+}
+
+function renderWaterfall(dest){
+  const target=VPP_TARGETS[dest]||16;
+  const maxVpp=CPM_LIVELO/(1+WATERFALL_TIERS[0].bonus/100)+2;
+  document.getElementById('waterfall').innerHTML=WATERFALL_TIERS.map(t=>{
+    const vppR=(CPM_LIVELO/(1+t.bonus/100));
+    const eco=target-vppR;
+    const barW=Math.max(10,Math.round(vppR/maxVpp*100));
+    const ecoLabel=eco>0?`Economia R$${eco.toFixed(2)}/1k (${Math.round(eco/target*100)}% abaixo)`:
+                         `R$${Math.abs(eco).toFixed(2)} acima do valor-alvo`;
+    const ecoColor=eco>0?'text-green-400':'text-red-400';
+    return `<div>
+      <div class="flex justify-between text-xs mb-1">
+        <span class="text-gray-300">${t.name} · ${t.bonus}% bônus</span>
+        <span class="font-medium" style="color:${t.color}">R$${vppR.toFixed(2)}/1k</span>
+      </div>
+      <div class="h-8 bg-gray-800 rounded overflow-hidden flex items-center">
+        <div class="h-full rounded flex items-center px-3 transition-all"
+          style="width:${barW}%;background:${t.color}22;border-right:2px solid ${t.color}">
+          <span class="text-xs ${ecoColor}">${ecoLabel}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderVolatility(programs){
+  const maxStd=Math.max(...programs.map(p=>p.vpp_max&&p.vpp_min?p.vpp_max-p.vpp_min:0),0.1);
+  document.getElementById('volatility').innerHTML=programs.map(p=>{
+    const color=PROG_COLORS[p.program]||'#6B7280';
+    const range=p.vpp_max&&p.vpp_min?p.vpp_max-p.vpp_min:0;
+    const stability=range<2?'Estável':range<5?'Moderado':'Volátil';
+    return `<div class="flex items-center gap-3">
+      <div class="text-xs text-gray-300 w-28 flex-shrink-0">${p.program}</div>
+      <div class="flex-1 h-3 bg-gray-800 rounded overflow-hidden">
+        <div class="h-full rounded" style="width:${Math.round(range/maxStd*100)}%;background:${color}"></div>
+      </div>
+      <div class="text-xs font-medium" style="color:${color};min-width:64px">±R$${range.toFixed(2)}</div>
+      <div class="text-xs text-gray-600 min-width:54px">${stability}</div>
+    </div>`;
+  }).join('');
+}
+
+load();
+</script>
+{% endblock %}

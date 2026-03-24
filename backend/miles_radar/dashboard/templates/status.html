@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% set active_page = 'status' %}
+{% block title %}Status — Miles Radar{% endblock %}
+{% block page_title %}Status do Sistema{% endblock %}
+
+{% block content %}
+<!-- System summary -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5" id="sys-kpis"></div>
+
+<!-- Scrapers grid -->
+<h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Scrapers ativos</h2>
+<div class="grid gap-3 md:grid-cols-2" id="scrapers-grid">
+  <div class="glass rounded-xl p-4 animate-pulse col-span-2 h-24"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const STATUS_COLORS = {success:'text-green-400',error:'text-red-400',running:'text-yellow-400',never_run:'text-gray-500'};
+const STATUS_LABELS = {success:'✓ OK',error:'✗ Erro',running:'⟳ Rodando',never_run:'— Nunca rodou'};
+
+async function loadStatus() {
+  const res = await fetch('/api/health');
+  const h = await res.json();
+
+  // KPIs
+  const errorCount = h.scrapers.filter(s=>s.last_status==='error').length;
+  document.getElementById('sys-kpis').innerHTML = [
+    {l:'Total campanhas',v:h.total_campaigns,c:'#F59E0B'},
+    {l:'Ativas agora',v:h.active_now,c:'#10B981'},
+    {l:'Scrapers OK',v:`${h.scrapers_ok}/${h.scrapers.length}`,c:h.scrapers_error>0?'#EF4444':'#10B981'},
+    {l:'Erros',v:errorCount,c:errorCount>0?'#EF4444':'#6B7280'},
+  ].map(k=>`<div class="glass rounded-xl p-4 relative overflow-hidden"><div class="accent-bar absolute left-0 top-0 bottom-0" style="background:${k.c}"></div><div class="pl-2"><div class="text-xs text-gray-500 mb-1">${k.l}</div><div class="kpi-val text-2xl font-semibold" style="color:${k.c}">${k.v}</div></div></div>`).join('');
+
+  // Scrapers
+  document.getElementById('scrapers-grid').innerHTML = h.scrapers.map(s => {
+    const statusColor = STATUS_COLORS[s.last_status] || 'text-gray-500';
+    const statusLabel = STATUS_LABELS[s.last_status] || s.last_status;
+    const bootPct = s.bootstrap_complete ? 100 : s.bootstrap_pages > 0 ? Math.min(s.bootstrap_pages*3, 95) : 0;
+    const lastRunStr = s.last_run ? new Date(s.last_run).toLocaleString('pt-BR') : 'Nunca';
+
+    return `
+    <div class="glass rounded-xl p-4">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full ${s.last_status==='success'?'bg-green-500':s.last_status==='error'?'bg-red-500':'bg-gray-600'}"></div>
+          <span class="font-medium text-sm">${s.name}</span>
+        </div>
+        <span class="text-xs ${statusColor} font-medium">${statusLabel}</span>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2 text-xs mb-3">
+        <div><div class="text-gray-600">Último run</div><div class="text-gray-400 mt-0.5 truncate" title="${lastRunStr}">${lastRunStr}</div></div>
+        <div><div class="text-gray-600">Encontrados</div><div class="text-gray-300 mt-0.5">${s.last_found} (${s.last_new} novos)</div></div>
+        <div><div class="text-gray-600">Duração</div><div class="text-gray-300 mt-0.5">${s.duration_s ? s.duration_s+'s' : '—'}</div></div>
+      </div>
+
+      <!-- Bootstrap progress -->
+      <div class="mb-2">
+        <div class="flex justify-between text-xs text-gray-600 mb-1">
+          <span>Bootstrap histórico</span>
+          <span>${s.bootstrap_complete ? 'Completo ✓' : s.bootstrap_oldest ? 'até '+s.bootstrap_oldest : 'Não iniciado'}</span>
+        </div>
+        <div class="h-1.5 bg-gray-800 rounded overflow-hidden">
+          <div class="h-full rounded transition-all duration-500 ${s.bootstrap_complete?'bg-green-500':'bg-yellow-500'}" style="width:${bootPct}%"></div>
+        </div>
+        ${s.bootstrap_campaigns>0?`<div class="text-xs text-gray-700 mt-0.5">${s.bootstrap_campaigns} campanhas · ${s.bootstrap_pages} pág. scrapeadas</div>`:''}
+      </div>
+
+      <button onclick="triggerScrape('${s.name}',this)"
+        class="w-full mt-1 text-xs bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition">
+        ▶ Forçar scrape agora
+      </button>
+    </div>`;
+  }).join('');
+
+  setLastUpdate();
+}
+
+async function triggerScrape(source, btn) {
+  const orig = btn.textContent;
+  btn.textContent = '⏳ Rodando...';
+  btn.disabled = true;
+  try {
+    const res = await fetch(`/api/scrape/trigger?source=${source}`, {method:'POST'});
+    const data = await res.json();
+    if(data.result?.status === 'success') {
+      btn.textContent = `✓ ${data.result.new || 0} novas campanhas`;
+      btn.className = btn.className.replace('bg-gray-800','bg-green-900').replace('text-gray-400','text-green-400');
+    } else {
+      btn.textContent = `✗ ${data.result?.error || data.detail || 'Erro'}`;
+      btn.className = btn.className.replace('bg-gray-800','bg-red-900').replace('text-gray-400','text-red-400');
+    }
+  } catch(e) {
+    btn.textContent = '✗ Falha de conexão';
+  }
+  setTimeout(() => {
+    btn.textContent = orig; btn.disabled = false;
+    btn.className = 'w-full mt-1 text-xs bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition';
+    loadStatus();
+  }, 5000);
+}
+
+loadStatus();
+setInterval(loadStatus, 30000);
+</script>
+{% endblock %}

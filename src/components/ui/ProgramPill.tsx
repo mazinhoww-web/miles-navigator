@@ -8,6 +8,7 @@ interface ProgramPillProps {
 export function ProgramPill({ name, className }: ProgramPillProps) {
   const n = name?.toLowerCase() ?? '';
   const cls = n.includes('smiles')  ? 'bg-amber-500/12 text-amber-400 border border-amber-500/20'
+            : n.includes('latam')   ? 'bg-sky-500/12 text-sky-400 border border-sky-500/20'
             : n.includes('azul')    ? 'bg-blue-500/12 text-blue-400 border border-blue-500/20'
             : n.includes('pass')    ? 'bg-purple-500/12 text-purple-400 border border-purple-500/20'
             : n.includes('livelo')  ? 'bg-rose-500/12 text-rose-400 border border-rose-500/20'

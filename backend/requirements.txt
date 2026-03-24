@@ -1,0 +1,41 @@
+# Web framework
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+jinja2==3.1.4
+python-multipart==0.0.12
+
+# Banco de dados
+sqlalchemy==2.0.36
+alembic==1.14.0
+psycopg2-binary==2.9.10
+aiosqlite==0.20.0
+
+# Scraping
+playwright==1.49.0
+beautifulsoup4==4.12.3
+lxml==5.3.0
+httpx==0.28.0
+
+# Agendador
+apscheduler==3.10.4
+
+# Configuração e validação
+pydantic==2.10.3
+pydantic-settings==2.6.1
+python-dotenv==1.0.1
+
+# HTTP requests
+requests==2.32.3
+
+# Logging
+loguru==0.7.3
+
+# Utilitários
+python-dateutil==2.9.0
+pytz==2024.2
+tenacity==9.0.0
+# Fase 4-5: análise estatística
+scipy==1.14.1
+numpy==2.0.2
+# Fase 6
+anthropic==0.40.0

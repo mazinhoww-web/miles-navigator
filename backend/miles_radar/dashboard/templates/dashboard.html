@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% set active_page = 'dashboard' %}
+{% block title %}Monitor — Miles Radar{% endblock %}
+{% block page_title %}Monitor em Tempo Real{% endblock %}
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+{% endblock %}
+{% block content %}
+<div class="flex flex-wrap gap-2 mb-5">
+  <button onclick="setFilter('all',this)" class="fc active px-3 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">Todos</button>
+  <button onclick="setFilter('LATAM Pass',this)" class="fc px-3 py-1 rounded-full text-xs font-medium text-gray-400 border border-gray-700">LATAM Pass</button>
+  <button onclick="setFilter('Smiles',this)" class="fc px-3 py-1 rounded-full text-xs font-medium text-gray-400 border border-gray-700">Smiles</button>
+  <button onclick="setFilter('Azul Fidelidade',this)" class="fc px-3 py-1 rounded-full text-xs font-medium text-gray-400 border border-gray-700">Azul</button>
+  <button onclick="setFilter('flash',this)" class="fc px-3 py-1 rounded-full text-xs font-medium text-gray-400 border border-gray-700">⚡ Flash</button>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5" id="kpis"></div>
+<div class="glass rounded-xl p-5 mb-5">
+  <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-1">Bônus máximo por dia — <span id="chart-ref"></span></div>
+  <div style="position:relative;height:160px"><canvas id="bonusChart"></canvas></div>
+</div>
+<h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Campanhas ativas — <span id="active-count" class="normal-case font-normal"></span></h2>
+<div id="active-list" class="space-y-2 mb-5"></div>
+<h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Últimas detectadas</h2>
+<div id="recent-list" class="space-y-2"></div>
+{% endblock %}
+{% block scripts %}
+<script>
+let cf='all',allActive=[],chartInst=null;
+async function load(){
+  try{
+    const[h,a,m]=await Promise.all([fetch('/api/health'),fetch('/api/promos/active'),fetch('/api/analysis/month')]);
+    const[health,active,month]=[await h.json(),await a.json(),await m.json()];
+    allActive=active.items;
+    document.getElementById('chart-ref').textContent=month.reference_month;
+    document.getElementById('kpis').innerHTML=[
+      {l:'Campanhas mês',v:month.total_campaigns,s:(month.delta_campaigns>=0?'+':'')+month.delta_campaigns+' vs ant.',c:'#F59E0B'},
+      {l:'Melhor bônus',v:(month.best_bonus||0)+'%',s:'no mês corrente',c:'#10B981'},
+      {l:'CPM mínimo',v:month.min_cpm?'R$'+month.min_cpm.toFixed(2):'—',s:'por 1k milhas',c:'#3B82F6'},
+      {l:'Flash sales',v:month.flash_count,s:active.count+' ativas agora',c:'#EF4444'},
+    ].map(k=>`<div class="glass rounded-xl p-4 relative overflow-hidden"><div class="accent-bar absolute left-0 top-0 bottom-0" style="background:${k.c}"></div><div class="pl-2"><div class="text-xs text-gray-500 mb-1">${k.l}</div><div class="kpi-val text-2xl font-semibold">${k.v}</div><div class="text-xs text-gray-600 mt-1">${k.s}</div></div></div>`).join('');
+    if(chartInst)chartInst.destroy();
+    chartInst=new Chart(document.getElementById('bonusChart'),{type:'line',data:{labels:month.by_day.map(d=>d.day),datasets:[{data:month.by_day.map(d=>d.max_bonus||0),borderColor:'#F59E0B',backgroundColor:'rgba(245,158,11,.08)',fill:true,tension:.4,borderWidth:2,pointRadius:2,pointBackgroundColor:'#F59E0B'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#4B5563',font:{size:10},maxTicksLimit:10},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#4B5563',font:{size:10},callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.04)'},min:0,max:110}}}});
+    renderCards();
+    setLastUpdate();
+  }catch(e){console.error(e);}
+}
+function renderCards(){
+  let items=cf==='all'?allActive:cf==='flash'?allActive.filter(c=>c.is_flash):allActive.filter(c=>c.destination_program===cf);
+  document.getElementById('active-count').textContent=items.length+' promoções';
+  document.getElementById('active-list').innerHTML=items.length?items.map(card).join(''):`<div class="glass rounded-xl p-4 text-gray-500 text-sm text-center">Nenhuma campanha ativa com este filtro</div>`;
+}
+function card(c){
+  return `<a href="/campanha/${c.id}" class="block glass rounded-xl p-4 border border-transparent ${c.is_flash?'flash-pulse':'hover:border-gray-700'} transition-all">
+    <div class="flex items-start gap-3">
+      <div class="flex-1 min-w-0">
+        <div class="flex flex-wrap gap-1 mb-1.5">${c.is_flash?'<span class="badge badge-flash">⚡ Flash</span>':''}<span class="prog-pill ${pillClass(c.destination_program)}">${c.destination_program||'—'}</span><span class="text-xs text-gray-500 px-2 py-0.5 rounded-full bg-gray-800">${TYPE_LABELS[c.promo_type]||c.promo_type}</span></div>
+        <div class="text-sm font-medium truncate">${c.title||'Sem título'}</div>
+        <div class="text-xs text-gray-600 mt-1 flex flex-wrap gap-2">${c.origin_program?`<span>De: ${c.origin_program}</span>`:''} ${c.ends_at?`<span>até ${fmtDate(c.ends_at)}</span>`:''} ${c.cpm_min?`<span class="text-green-500">CPM R$${c.cpm_min.toFixed(2)}/1k</span>`:''}</div>
+      </div>
+      <div class="text-right flex-shrink-0">${c.bonus_pct_max?`<div class="text-xl font-bold font-sora" style="color:#F59E0B">${c.bonus_pct_max}%</div><div class="text-xs text-gray-600">bônus máx</div>`:''}</div>
+    </div>
+  </a>`;
+}
+function setFilter(f,btn){cf=f;document.querySelectorAll('.fc').forEach(b=>{b.className='fc px-3 py-1 rounded-full text-xs font-medium text-gray-400 border border-gray-700';});btn.className='fc active px-3 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30';renderCards();}
+load();setInterval(load,120000);
+</script>
+{% endblock %}

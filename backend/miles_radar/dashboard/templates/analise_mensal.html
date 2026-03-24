@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% set active_page = 'analise_mensal' %}
+{% block title %}Análise Mensal — Miles Radar{% endblock %}
+{% block page_title %}Análise Mensal{% endblock %}
+
+{% block content %}
+<!-- Seletor de mês -->
+<div class="flex items-center gap-3 mb-5">
+  <button id="prev-btn" onclick="changeMonth(-1)" class="text-gray-400 hover:text-white px-2 py-1 rounded-lg hover:bg-gray-800 transition text-lg">‹</button>
+  <div class="glass rounded-xl px-5 py-2 text-sm font-medium" id="month-display">Março 2026</div>
+  <button id="next-btn" onclick="changeMonth(1)" class="text-gray-400 hover:text-white px-2 py-1 rounded-lg hover:bg-gray-800 transition text-lg">›</button>
+  <span class="text-xs text-gray-600 ml-2" id="ref-badge"></span>
+</div>
+
+<!-- KPIs do mês -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5" id="month-kpis"></div>
+
+<!-- Gantt + Heatmap em 2 colunas -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+
+  <!-- Gantt timeline -->
+  <div class="glass rounded-xl p-5">
+    <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-4">Timeline — Campanhas do Mês</div>
+    <div id="gantt-header" class="flex mb-1 pl-24 pr-1"></div>
+    <div id="gantt-body" class="space-y-1.5 max-h-80 overflow-y-auto pr-1"></div>
+    <div class="text-xs text-gray-700 mt-3">* Cada barra representa o período de vigência da campanha</div>
+  </div>
+
+  <!-- Heatmap de dias -->
+  <div class="glass rounded-xl p-5">
+    <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-4">Heatmap — Intensidade por Dia</div>
+    <div id="heatmap-grid" class="grid grid-cols-7 gap-1.5 mb-2"></div>
+    <div class="flex items-center gap-2 mt-3">
+      <span class="text-xs text-gray-600">Sem campanhas</span>
+      <div class="flex gap-1">
+        <div class="w-4 h-4 rounded" style="background:rgba(245,158,11,.1)"></div>
+        <div class="w-4 h-4 rounded" style="background:rgba(245,158,11,.3)"></div>
+        <div class="w-4 h-4 rounded" style="background:rgba(245,158,11,.6)"></div>
+        <div class="w-4 h-4 rounded" style="background:rgba(245,158,11,.9)"></div>
+      </div>
+      <span class="text-xs text-gray-600">Mais campanhas</span>
+    </div>
+  </div>
+</div>
+
+<!-- Rankings -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+  <!-- Ranking por programa -->
+  <div class="glass rounded-xl p-5">
+    <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-4">Ranking por programa-destino</div>
+    <div id="rank-program" class="space-y-2"></div>
+  </div>
+
+  <!-- Ranking por origem -->
+  <div class="glass rounded-xl p-5">
+    <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-4">Ranking por origem dos pontos</div>
+    <div id="rank-origin" class="space-y-2"></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const PROG_COLORS = {'LATAM Pass':'#3B82F6','Smiles':'#F59E0B','Azul Fidelidade':'#8B5CF6','Livelo':'#10B981','Esfera':'#EC4899'};
+
+let now = new Date();
+let curYear = now.getFullYear();
+let curMonth = now.getMonth() + 1;
+
+function refStr() { return `${curYear}-${String(curMonth).padStart(2,'0')}`; }
+
+function changeMonth(d) {
+  curMonth += d;
+  if(curMonth > 12) { curMonth = 1; curYear++; }
+  if(curMonth < 1)  { curMonth = 12; curYear--; }
+  loadMonth();
+}
+
+async function loadMonth() {
+  const ref = refStr();
+  document.getElementById('month-display').textContent = MONTHS[curMonth-1] + ' ' + curYear;
+  document.getElementById('ref-badge').textContent = ref;
+
+  const res = await fetch(`/api/analysis/month?ref=${ref}`);
+  const data = await res.json();
+  renderKpis(data);
+  renderGantt(data);
+  renderHeatmap(data);
+  renderRankings(data);
+  setLastUpdate();
+}
+
+function renderKpis(d) {
+  const delta = (v,unit) => {
+    if(v===0||v===null||v===undefined) return '<span class="text-gray-600">igual</span>';
+    const color = v>0?'text-green-400':'text-red-400';
+    return `<span class="${color}">${v>0?'+':''}${v}${unit}</span>`;
+  };
+  document.getElementById('month-kpis').innerHTML = [
+    {l:'Campanhas',v:d.total_campaigns,s:delta(d.delta_campaigns,'')+'  vs '+d.prev_month,c:'#F59E0B'},
+    {l:'Melhor bônus',v:(d.best_bonus||0)+'%',s:delta(d.delta_bonus,'pp')+' vs mês ant.',c:'#10B981'},
+    {l:'Flash sales',v:d.flash_count,s:`${d.total_campaigns?Math.round(d.flash_count/d.total_campaigns*100):0}% das campanhas`,c:'#EF4444'},
+    {l:'Origens ativas',v:d.by_origin.length,s:d.by_program.length+' programas-destino',c:'#8B5CF6'},
+  ].map(k=>`<div class="glass rounded-xl p-4 relative overflow-hidden"><div class="accent-bar absolute left-0 top-0 bottom-0" style="background:${k.c}"></div><div class="pl-2"><div class="text-xs text-gray-500 mb-1">${k.l}</div><div class="kpi-val text-2xl font-semibold">${k.v}</div><div class="text-xs text-gray-600 mt-1">${k.s}</div></div></div>`).join('');
+}
+
+function renderGantt(d) {
+  const days = d.days_in_month;
+  const hdr = document.getElementById('gantt-header');
+  const body = document.getElementById('gantt-body');
+  const ticks = [1, Math.round(days/4), Math.round(days/2), Math.round(days*3/4), days];
+  hdr.innerHTML = ticks.map(t=>`<span class="text-xs text-gray-600 flex-1 text-center">${t}</span>`).join('');
+  
+  if(!d.gantt || d.gantt.length === 0) {
+    body.innerHTML = '<div class="text-gray-500 text-sm text-center py-4">Nenhuma campanha com datas neste mês</div>';
+    return;
+  }
+
+  body.innerHTML = d.gantt.map(c => {
+    const color = PROG_COLORS[c.destination] || '#6B7280';
+    const startPct = ((c.start_day-1)/days*100).toFixed(1);
+    const widthPct = ((c.end_day-c.start_day+1)/days*100).toFixed(1);
+    const label = (c.destination||'').replace('Fidelidade','').trim();
+    return `
+    <div class="flex items-center gap-2">
+      <div class="text-xs text-gray-500 w-20 truncate text-right" title="${c.title}">${label}</div>
+      <div class="flex-1 h-6 bg-gray-800 rounded relative overflow-hidden">
+        <div class="absolute h-full rounded flex items-center px-1.5" 
+          style="left:${startPct}%;width:${widthPct}%;background:${color}22;border:1px solid ${color}55;min-width:4px">
+          ${parseFloat(widthPct)>10?`<span class="text-xs font-medium truncate" style="color:${color};font-size:9px">${c.bonus_max||''}${c.bonus_max?'%':''}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderHeatmap(d) {
+  const grid = document.getElementById('heatmap-grid');
+  const maxCount = Math.max(...d.by_day.map(x=>x.count), 1);
+  grid.innerHTML = d.by_day.map(day => {
+    const alpha = day.count > 0 ? (day.count/maxCount*0.8 + 0.1).toFixed(2) : 0.04;
+    const bonus = day.max_bonus || 0;
+    return `<div class="rounded aspect-square flex items-center justify-center text-xs cursor-pointer transition hover:scale-110"
+      style="background:rgba(245,158,11,${alpha})"
+      title="Dia ${day.day}: ${day.count} campanhas, bônus máx ${bonus}%">
+      <span style="font-size:10px;color:rgba(255,255,255,${day.count>0?0.7:0.3})">${day.day}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderRankings(d) {
+  const maxBonus = d.by_program.length ? d.by_program[0].avg_bonus : 100;
+  document.getElementById('rank-program').innerHTML = d.by_program.slice(0,6).map((p,i) => {
+    const color = PROG_COLORS[p.program] || '#6B7280';
+    return `<div class="flex items-center gap-2 text-sm">
+      <span class="text-gray-600 text-xs w-4">${i+1}</span>
+      <span class="flex-1 text-gray-300">${p.program}</span>
+      <div class="w-24 h-2 bg-gray-800 rounded overflow-hidden">
+        <div class="h-full rounded" style="width:${Math.round(p.avg_bonus/maxBonus*100)}%;background:${color}"></div>
+      </div>
+      <span class="text-xs font-medium" style="color:${color}">${p.avg_bonus}%</span>
+      <span class="text-xs text-gray-600">${p.count}x</span>
+    </div>`;
+  }).join('') || '<div class="text-gray-600 text-sm">Sem dados</div>';
+
+  const maxOrig = d.by_origin.length ? d.by_origin[0].count : 1;
+  document.getElementById('rank-origin').innerHTML = d.by_origin.slice(0,6).map((o,i) =>
+    `<div class="flex items-center gap-2 text-sm">
+      <span class="text-gray-600 text-xs w-4">${i+1}</span>
+      <span class="flex-1 text-gray-300">${o.origin}</span>
+      <div class="w-24 h-2 bg-gray-800 rounded overflow-hidden">
+        <div class="h-full rounded bg-purple-500" style="width:${Math.round(o.count/maxOrig*100)}%"></div>
+      </div>
+      <span class="text-xs text-gray-400">${o.count} promos</span>
+    </div>`
+  ).join('') || '<div class="text-gray-600 text-sm">Sem dados</div>';
+}
+
+loadMonth();
+</script>
+{% endblock %}

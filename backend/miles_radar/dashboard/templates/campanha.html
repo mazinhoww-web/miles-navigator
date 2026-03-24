@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% set active_page = 'dashboard' %}
+{% block title %}Campanha — Miles Radar{% endblock %}
+{% block page_title %}Detalhe da Campanha{% endblock %}
+
+{% block content %}
+<div id="loading" class="text-gray-500 text-sm">Carregando...</div>
+<div id="content" class="hidden space-y-5">
+
+  <!-- Header da campanha -->
+  <div class="glass rounded-xl p-5">
+    <div class="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <div class="flex flex-wrap gap-2 mb-2" id="camp-badges"></div>
+        <h1 class="text-lg font-semibold font-sora" id="camp-title"></h1>
+        <div class="text-sm text-gray-500 mt-1" id="camp-meta"></div>
+      </div>
+      <div class="text-right">
+        <div class="text-3xl font-bold font-sora" style="color:#F59E0B" id="camp-bonus-max"></div>
+        <div class="text-xs text-gray-500">bônus máximo</div>
+        <a id="camp-link" href="#" target="_blank" class="mt-2 inline-block text-xs text-blue-400 hover:text-blue-300">Ver promoção →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tier waterfall + Simulador lado a lado -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+    <!-- Waterfall de tiers -->
+    <div class="glass rounded-xl p-5">
+      <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-4">Camadas de Bônus por Perfil</div>
+      <div id="tier-waterfall" class="space-y-2"></div>
+
+      <!-- Loyalty tiers se existirem -->
+      <div id="loyalty-section" class="hidden mt-4 pt-4 border-t border-gray-800">
+        <div class="text-xs text-gray-500 mb-2">+ Bônus por tempo de clube:</div>
+        <div id="loyalty-tiers" class="space-y-1.5"></div>
+      </div>
+    </div>
+
+    <!-- Simulador de perfil -->
+    <div class="glass rounded-xl p-5">
+      <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-4">Simulador — Qual é o seu bônus?</div>
+
+      <div class="space-y-3 mb-4">
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Seu perfil</label>
+          <select id="sim-tier" onchange="simulate()" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+            <option value="">Selecione seu perfil...</option>
+          </select>
+        </div>
+        <div id="loyalty-sim-row" class="hidden">
+          <label class="text-xs text-gray-400 block mb-1">Tempo no clube</label>
+          <select id="sim-loyalty" onchange="simulate()" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+            <option value="0">Menos de 6 meses</option>
+            <option value="5">6 a 11 meses (+5%)</option>
+            <option value="10">1 a 2 anos (+10%)</option>
+            <option value="20">3 a 4 anos (+20%)</option>
+            <option value="30">5+ anos (+30%)</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 block mb-1">Quantidade de pontos a transferir</label>
+          <input type="number" id="sim-pts" value="50000" min="1000" step="1000"
+            onchange="simulate()" oninput="simulate()"
+            class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+        </div>
+      </div>
+
+      <!-- Resultado -->
+      <div id="sim-result" class="bg-gray-800/50 rounded-xl p-4 space-y-2">
+        <div class="text-xs text-gray-500 text-center">Selecione seu perfil para calcular</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VPP por perfil (se disponível) -->
+  <div id="vpp-section" class="glass rounded-xl p-5 hidden">
+    <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-4">VPP Real por Perfil (Livelo como origem, CPM R$29,50)</div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm" id="vpp-table">
+        <thead>
+          <tr class="text-xs text-gray-500 border-b border-gray-800">
+            <th class="text-left pb-2 font-normal">Perfil</th>
+            <th class="text-right pb-2 font-normal">Bônus</th>
+            <th class="text-right pb-2 font-normal">VPP real</th>
+            <th class="text-right pb-2 font-normal">Valor-alvo</th>
+            <th class="text-right pb-2 font-normal">Economia/1k</th>
+            <th class="text-right pb-2 font-normal"></th>
+          </tr>
+        </thead>
+        <tbody id="vpp-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Campanhas similares -->
+  <div id="similar-section">
+    <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Histórico desta rota</h2>
+    <div id="similar-list" class="space-y-2"></div>
+  </div>
+
+  <!-- Botão watchlist -->
+  <div class="glass rounded-xl p-4 flex items-center justify-between">
+    <div>
+      <div class="text-sm font-medium">Receber alerta quando esta rota aparecer novamente</div>
+      <div class="text-xs text-gray-500 mt-0.5">Você será avisado no WhatsApp quando uma nova campanha for detectada</div>
+    </div>
+    <button onclick="addWatchlist()" id="watch-btn"
+      class="px-4 py-2 rounded-lg text-sm font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30 transition">
+      + Me avise
+    </button>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const campaignId = window.location.pathname.split('/').pop();
+let campData = null;
+
+async function loadCampaign() {
+  const [campRes, simRes] = await Promise.all([
+    fetch(`/api/promos/${campaignId}`),
+    fetch(`/api/promos/${campaignId}/similar`),
+  ]);
+  campData = await campRes.json();
+  const similar = await simRes.json();
+
+  document.getElementById('loading').classList.add('hidden');
+  document.getElementById('content').classList.remove('hidden');
+
+  // Header
+  const badges = [];
+  if(campData.is_flash) badges.push('<span class="badge badge-flash">⚡ Flash Sale</span>');
+  badges.push(`<span class="prog-pill ${pillClass(campData.destination_program)}">${campData.destination_program||'—'}</span>`);
+  badges.push(`<span class="text-xs text-gray-500 px-2 py-0.5 rounded-full bg-gray-800">${TYPE_LABELS[campData.promo_type]||campData.promo_type}</span>`);
+  document.getElementById('camp-badges').innerHTML = badges.join('');
+  document.getElementById('camp-title').textContent = campData.title || 'Campanha sem título';
+  document.getElementById('camp-bonus-max').textContent = campData.bonus_pct_max ? campData.bonus_pct_max + '%' : '—';
+
+  const meta = [];
+  if(campData.origin_program) meta.push(`De: ${campData.origin_program}`);
+  if(campData.ends_at) meta.push(`Válido até ${fmtDate(campData.ends_at)}`);
+  if(campData.cpm_min) meta.push(`CPM est. R$${campData.cpm_min.toFixed(2)}/1k`);
+  meta.push(`Fonte: ${campData.source_name}`);
+  document.getElementById('camp-meta').textContent = meta.join('  ·  ');
+  if(campData.promo_url) document.getElementById('camp-link').href = campData.promo_url;
+
+  // Tier waterfall
+  renderWaterfall();
+
+  // Loyalty tiers
+  if(campData.loyalty_tiers && campData.loyalty_tiers.length > 0) {
+    document.getElementById('loyalty-section').classList.remove('hidden');
+    document.getElementById('loyalty-sim-row').classList.remove('hidden');
+    document.getElementById('loyalty-tiers').innerHTML = campData.loyalty_tiers.map(t =>
+      `<div class="flex items-center gap-2 text-xs text-gray-400">
+        <span class="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0"></span>
+        <span>${t.label}</span>
+        <span class="ml-auto font-medium text-purple-400">+${t.bonus_pct_extra}%</span>
+      </div>`
+    ).join('');
+  }
+
+  // VPP profiles
+  if(campData.vpp_profiles && campData.vpp_profiles.length > 0) {
+    document.getElementById('vpp-section').classList.remove('hidden');
+    const target = campData.vpp_target || 0;
+    document.getElementById('vpp-tbody').innerHTML = campData.vpp_profiles.map(p => {
+      const cls = p.classification === 'EXCELENTE' ? 'badge-excelente' : p.classification === 'BOM' ? 'badge-bom' : 'badge-neutro';
+      return `<tr class="border-b border-gray-800/50">
+        <td class="py-2 text-gray-300">${p.tier_name}</td>
+        <td class="py-2 text-right font-medium" style="color:#F59E0B">${p.bonus_pct}%</td>
+        <td class="py-2 text-right text-gray-300">R$${p.vpp_real}</td>
+        <td class="py-2 text-right text-gray-500">R$${target}</td>
+        <td class="py-2 text-right font-medium ${p.economy_per_k>0?'text-green-400':'text-red-400'}">
+          ${p.economy_per_k>0?'+':''}R$${p.economy_per_k}
+        </td>
+        <td class="py-2 text-right"><span class="badge ${cls}">${p.classification}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Simulador — popula opções
+  const sel = document.getElementById('sim-tier');
+  sel.innerHTML = '<option value="">Selecione seu perfil...</option>';
+  (campData.bonus_tiers || []).forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = JSON.stringify(t);
+    opt.textContent = `${t.tier_name} (${t.bonus_pct}%)`;
+    sel.appendChild(opt);
+  });
+
+  // Similares
+  if(similar.items && similar.items.length > 0) {
+    document.getElementById('similar-list').innerHTML = similar.items.map(c =>
+      `<a href="/campanha/${c.id}" class="block glass rounded-xl p-3 hover:border-gray-700 border border-transparent transition-all">
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-gray-600">${c.reference_month}</span>
+          <span class="text-sm text-gray-300 flex-1 truncate">${c.title||'—'}</span>
+          ${c.bonus_pct_max?`<span class="text-sm font-semibold" style="color:#F59E0B">${c.bonus_pct_max}%</span>`:''}
+        </div>
+      </a>`
+    ).join('');
+  } else {
+    document.getElementById('similar-section').innerHTML += '<div class="text-gray-600 text-sm">Nenhum histórico encontrado para esta rota</div>';
+  }
+
+  setLastUpdate();
+}
+
+function renderWaterfall() {
+  const tiers = campData.bonus_tiers || [];
+  const maxBonus = Math.max(...tiers.map(t => t.bonus_pct || 0), 100);
+  document.getElementById('tier-waterfall').innerHTML = tiers.map(t => `
+    <div class="space-y-1">
+      <div class="flex justify-between text-xs text-gray-400">
+        <span>${t.tier_name}</span>
+        <span class="font-medium" style="color:#F59E0B">${t.bonus_pct}%</span>
+      </div>
+      <div class="h-6 bg-gray-800 rounded overflow-hidden flex items-center">
+        <div class="tier-bar-fill h-full rounded flex items-center px-2"
+          style="width:${Math.round(t.bonus_pct/maxBonus*100)}%;background:rgba(245,158,11,${0.15+t.bonus_pct/maxBonus*0.5})">
+          <span class="text-xs text-yellow-200">${t.condition||''}</span>
+        </div>
+      </div>
+      ${(t.requires_club||t.requires_card)?`<div class="text-xs text-gray-600">${t.requires_club?'✓ Requer clube':''}${t.requires_card?' + Cartão co-branded':''}</div>`:''}
+    </div>`).join('');
+}
+
+function simulate() {
+  const tierStr = document.getElementById('sim-tier').value;
+  const pts = parseInt(document.getElementById('sim-pts').value) || 50000;
+  const loyaltyExtra = parseInt(document.getElementById('sim-loyalty').value) || 0;
+
+  if(!tierStr) {
+    document.getElementById('sim-result').innerHTML = '<div class="text-xs text-gray-500 text-center">Selecione seu perfil para calcular</div>';
+    return;
+  }
+
+  const tier = JSON.parse(tierStr);
+  const totalBonus = (tier.bonus_pct || 0) + loyaltyExtra;
+  const milesReceived = Math.round(pts * (1 + totalBonus/100));
+  const bonusMiles = milesReceived - pts;
+
+  const dest = campData.destination_program;
+  const vppTarget = {'Smiles':16,'LATAM Pass':25,'Azul Fidelidade':14}[dest];
+  const CPM_LIVELO = 29.50;
+  const vppReal = CPM_LIVELO / (1 + totalBonus/100);
+  const economy = vppTarget ? vppTarget - vppReal : null;
+
+  document.getElementById('sim-result').innerHTML = `
+    <div class="grid grid-cols-2 gap-3">
+      <div class="text-center">
+        <div class="text-xs text-gray-500 mb-1">Bônus total</div>
+        <div class="text-2xl font-bold font-sora" style="color:#F59E0B">${totalBonus}%</div>
+        ${loyaltyExtra>0?`<div class="text-xs text-purple-400">${tier.bonus_pct}% + ${loyaltyExtra}% tempo clube</div>`:''}
+      </div>
+      <div class="text-center">
+        <div class="text-xs text-gray-500 mb-1">Milhas recebidas</div>
+        <div class="text-2xl font-bold font-sora text-green-400">${milesReceived.toLocaleString('pt-BR')}</div>
+        <div class="text-xs text-gray-500">+${bonusMiles.toLocaleString('pt-BR')} bônus</div>
+      </div>
+    </div>
+    ${economy!==null?`
+    <div class="mt-3 pt-3 border-t border-gray-700">
+      <div class="flex justify-between text-xs text-gray-500 mb-1">
+        <span>CPM real (Livelo)</span><span class="text-gray-300">R$${vppReal.toFixed(2)}/1k</span>
+      </div>
+      <div class="flex justify-between text-xs text-gray-500 mb-1">
+        <span>Valor-alvo ${dest}</span><span class="text-gray-300">R$${vppTarget}/1k</span>
+      </div>
+      <div class="flex justify-between text-xs font-medium">
+        <span class="text-gray-400">Economia por 1k milhas</span>
+        <span class="${economy>0?'text-green-400':'text-red-400'}">${economy>0?'+':''}R$${economy.toFixed(2)}</span>
+      </div>
+      <div class="flex justify-between text-xs font-medium mt-1">
+        <span class="text-gray-400">Economia total (${pts.toLocaleString('pt-BR')} pts)</span>
+        <span class="${economy>0?'text-green-400':'text-red-400'}">${economy>0?'+':''}R$${(economy*pts/1000).toFixed(0)}</span>
+      </div>
+    </div>`:''} `;
+}
+
+async function addWatchlist() {
+  const btn = document.getElementById('watch-btn');
+  const num = prompt('Seu número WhatsApp (com DDD, sem espaços ou +):\nExemplo: 5565999999999');
+  if(!num) return;
+  const url = `/api/watchlist?number=${num}&destination=${encodeURIComponent(campData.destination_program||'')}&origin=${encodeURIComponent(campData.origin_program||'')}`;
+  const res = await fetch(url, {method:'POST'});
+  const data = await res.json();
+  btn.textContent = '✓ Adicionado';
+  btn.disabled = true;
+}
+
+loadCampaign();
+</script>
+{% endblock %}

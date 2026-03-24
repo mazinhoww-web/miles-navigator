@@ -1,0 +1,340 @@
+{% extends "base.html" %}
+{% set active_page = 'historico' %}
+{% block title %}Histórico — Miles Radar{% endblock %}
+{% block page_title %}Análise Histórica{% endblock %}
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<!-- Controles -->
+<div class="flex flex-wrap gap-3 mb-5">
+  <div class="flex items-center gap-2">
+    <span class="text-xs text-gray-400">Janela</span>
+    <div class="flex gap-1 bg-gray-800 rounded-lg p-1">
+      {% for w in [3,6,12,18,24,36] %}
+      <button onclick="setWindow({{w}},this)"
+        class="wbtn px-3 py-1 rounded text-xs font-medium {% if w == 12 %}bg-gray-700 text-white{% else %}text-gray-500 hover:text-gray-300{% endif %}">
+        {{w}}m
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="flex items-center gap-2">
+    <span class="text-xs text-gray-400">Destino</span>
+    <select id="dest-sel" onchange="load()"
+      class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white">
+      <option value="">Todos os programas</option>
+      <option value="LATAM Pass">LATAM Pass</option>
+      <option value="Smiles">Smiles</option>
+      <option value="Azul Fidelidade">Azul Fidelidade</option>
+    </select>
+  </div>
+  <div class="flex items-center gap-2">
+    <span class="text-xs text-gray-400">Origem</span>
+    <select id="orig-sel" onchange="load()"
+      class="bg-gray-800 border border-gray-700 rounded-lg px-3 py-1.5 text-sm text-white">
+      <option value="">Todas as origens</option>
+      <option value="Livelo">Livelo</option>
+      <option value="Esfera">Esfera</option>
+      <option value="Iupp Itaú">Itaú</option>
+      <option value="Nubank Rewards">Nubank</option>
+      <option value="C6 Átomos">C6</option>
+    </select>
+  </div>
+  <span class="ml-auto text-xs text-gray-600" id="data-note"></span>
+</div>
+
+<!-- KPIs históricos -->
+<div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5" id="hist-kpis"></div>
+
+<!-- Gráfico de evolução + Insight cards -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-5">
+  <div class="glass rounded-xl p-5 lg:col-span-2">
+    <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-1">Evolução do bônus máximo por mês</div>
+    <div class="text-xs text-gray-600 mb-3" id="trend-label"></div>
+    <div style="position:relative;height:200px"><canvas id="evolutionChart"></canvas></div>
+    <div class="flex gap-4 mt-2 flex-wrap">
+      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#6B7280">
+        <span style="width:10px;height:2px;background:#F59E0B;display:inline-block"></span>Bônus máx
+      </span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#6B7280">
+        <span style="width:10px;height:2px;background:#10B981;display:inline-block;border-top:1px dashed #10B981"></span>Média do período
+      </span>
+    </div>
+  </div>
+  <div class="glass rounded-xl p-5">
+    <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-3">Insights automáticos</div>
+    <div id="insight-list" class="space-y-2"></div>
+  </div>
+</div>
+
+<!-- Heatmap de sazonalidade + Distribuição de duração -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
+  <div class="glass rounded-xl p-5">
+    <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-3">Heatmap sazonal — bônus médio por mês</div>
+    <div id="heatmap-wrap" class="overflow-x-auto"></div>
+    <div class="flex items-center gap-2 mt-3 text-xs text-gray-600">
+      <span>Menor</span>
+      <div class="flex gap-1">
+        <div class="w-4 h-3 rounded" style="background:rgba(245,158,11,.1)"></div>
+        <div class="w-4 h-3 rounded" style="background:rgba(245,158,11,.3)"></div>
+        <div class="w-4 h-3 rounded" style="background:rgba(245,158,11,.6)"></div>
+        <div class="w-4 h-3 rounded" style="background:rgba(245,158,11,.9)"></div>
+      </div>
+      <span>Maior bônus histórico</span>
+    </div>
+  </div>
+  <div class="glass rounded-xl p-5">
+    <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-3">Distribuição de duração das campanhas</div>
+    <div id="duration-bars" class="space-y-2"></div>
+    <div class="mt-4">
+      <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-3">Ranking por frequência</div>
+      <div id="prog-rank" class="space-y-2"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Sparklines por rota -->
+<div class="glass rounded-xl p-5 mb-5">
+  <div class="text-xs text-gray-400 uppercase tracking-wider font-medium mb-3">Evolução por rota principal</div>
+  <div id="sparklines" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+</div>
+
+<!-- Bootstrap info banner -->
+<div id="bootstrap-banner" class="hidden glass rounded-xl p-4 border border-yellow-500/20 mb-5">
+  <div class="flex items-start gap-3">
+    <div class="text-yellow-500 text-lg flex-shrink-0">ℹ</div>
+    <div>
+      <div class="text-sm font-medium text-yellow-400">Dados históricos em coleta</div>
+      <div class="text-xs text-gray-400 mt-0.5" id="bootstrap-detail"></div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let curMonths = 12;
+let evChart = null;
+const GC = 'rgba(255,255,255,.05)';
+const TC = '#4B5563';
+const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const PROG_COLORS = {'LATAM Pass':'#3B82F6','Smiles':'#F59E0B','Azul Fidelidade':'#8B5CF6'};
+
+function setWindow(w, btn) {
+  curMonths = w;
+  document.querySelectorAll('.wbtn').forEach(b => {
+    b.className = 'wbtn px-3 py-1 rounded text-xs font-medium text-gray-500 hover:text-gray-300';
+  });
+  btn.className = 'wbtn px-3 py-1 rounded text-xs font-medium bg-gray-700 text-white';
+  load();
+}
+
+async function load() {
+  const dest = document.getElementById('dest-sel').value;
+  const orig = document.getElementById('orig-sel').value;
+  const params = new URLSearchParams({ months: curMonths });
+  if(dest) params.set('destination', dest);
+  if(orig) params.set('origin', orig);
+
+  const [histRes, insRes, seasRes, progsRes, healthRes] = await Promise.all([
+    fetch('/api/history?' + params),
+    fetch('/api/history/insights?months=' + curMonths),
+    fetch('/api/history/seasonality?months=' + curMonths),
+    fetch('/api/history/programs?months=' + curMonths),
+    fetch('/api/health'),
+  ]);
+
+  const [hist, ins, seas, progs, health] = await Promise.all([
+    histRes.json(), insRes.json(), seasRes.json(), progsRes.json(), healthRes.json()
+  ]);
+
+  renderKpis(hist);
+  renderEvolution(hist);
+  renderInsights(ins.insights);
+  renderHeatmap(seas.heatmap);
+  renderDuration(hist);
+  renderRank(progs.programs);
+  renderSparklines(progs.programs, hist);
+  checkBootstrap(health);
+  setLastUpdate();
+
+  const note = hist.window_start
+    ? `Dados de ${hist.window_start} até hoje · ${hist.total_campaigns} campanhas indexadas`
+    : '';
+  document.getElementById('data-note').textContent = note;
+}
+
+function renderKpis(d) {
+  const trend_arrow = d.trend_direction === 'subindo' ? '↑' : d.trend_direction === 'caindo' ? '↓' : '→';
+  const trend_color = d.trend_direction === 'subindo' ? '#10B981' : d.trend_direction === 'caindo' ? '#EF4444' : '#6B7280';
+  const kpis = [
+    {l:'Campanhas',v:d.total_campaigns,s:`${d.frequency_per_month}/mês em média`,c:'#F59E0B'},
+    {l:'Bônus médio máx',v:d.avg_bonus_max?d.avg_bonus_max+'%':'—',s:`máximo histórico: ${d.max_bonus_ever}%`,c:'#10B981'},
+    {l:'Duração média',v:d.avg_duration_days?d.avg_duration_days+'d':'—',s:`${Math.round((d.flash_rate||0)*100)}% flash sales`,c:'#3B82F6'},
+    {l:'CPM mínimo',v:d.min_cpm_ever?'R$'+d.min_cpm_ever:d.vpp_target?'R$'+d.vpp_target+' alvo':'—',s:d.avg_cpm?`médio R$${d.avg_cpm}`:'',c:'#8B5CF6'},
+    {l:'Tendência bônus',v:trend_arrow+' '+d.trend_direction,s:d.days_since_last!=null?`${d.days_since_last}d sem campanha`:'',c:trend_color},
+  ];
+  document.getElementById('hist-kpis').innerHTML = kpis.map(k=>`
+    <div class="glass rounded-xl p-4 relative overflow-hidden">
+      <div class="accent-bar absolute left-0 top-0 bottom-0" style="background:${k.c}"></div>
+      <div class="pl-2">
+        <div class="text-xs text-gray-500 mb-1">${k.l}</div>
+        <div class="kpi-val text-lg font-semibold" style="color:${k.c}">${k.v}</div>
+        <div class="text-xs text-gray-600 mt-1">${k.s}</div>
+      </div>
+    </div>`).join('');
+
+  // Trend label
+  const med = d.interval_median_days;
+  const dsl = d.days_since_last;
+  const expected = d.expected_next_days;
+  let trendTxt = '';
+  if(med && dsl != null) {
+    trendTxt = `Intervalo mediano histórico: ${med} dias · Última campanha: ${dsl} dias atrás`;
+    if(expected != null) trendTxt += ` · Próxima esperada em: ~${expected} dias`;
+  }
+  document.getElementById('trend-label').textContent = trendTxt;
+}
+
+function renderEvolution(d) {
+  if(!d.monthly_series || d.monthly_series.length === 0) {
+    document.getElementById('evolutionChart').parentElement.innerHTML =
+      '<div class="text-gray-600 text-sm text-center py-8">Sem dados históricos suficientes. O bootstrap está coletando dados dos blogs.</div>';
+    return;
+  }
+  const labels = d.monthly_series.map(m => m.month);
+  const maxData = d.monthly_series.map(m => m.max_bonus);
+  const avgLine = new Array(maxData.length).fill(d.avg_bonus_max || 0);
+
+  if(evChart) evChart.destroy();
+  evChart = new Chart(document.getElementById('evolutionChart'), {
+    type: 'line',
+    data: { labels, datasets: [
+      {label:'Bônus máx',data:maxData,borderColor:'#F59E0B',backgroundColor:'rgba(245,158,11,.1)',fill:true,tension:.35,borderWidth:2,pointRadius:3,pointBackgroundColor:'#F59E0B'},
+      {label:'Média',data:avgLine,borderColor:'#10B981',backgroundColor:'transparent',tension:0,borderWidth:1.5,borderDash:[4,3],pointRadius:0},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y}%`}}},
+      scales:{x:{ticks:{color:TC,font:{size:10},maxTicksLimit:12},grid:{color:GC}},
+              y:{ticks:{color:TC,font:{size:10},callback:v=>v+'%'},grid:{color:GC},min:0,max:115}}
+    }
+  });
+}
+
+function renderInsights(insights) {
+  const colors = {green:'text-green-400',red:'text-red-400',amber:'text-yellow-400',purple:'text-purple-400',blue:'text-blue-400'};
+  const bgs = {green:'rgba(16,185,129,.1)',red:'rgba(239,68,68,.1)',amber:'rgba(245,158,11,.1)',purple:'rgba(139,92,246,.1)',blue:'rgba(59,130,246,.1)'};
+  document.getElementById('insight-list').innerHTML = (insights||[]).slice(0,5).map(ins => `
+    <div class="flex gap-2 p-2 rounded-lg" style="background:${bgs[ins.color]||bgs.blue}">
+      <div class="text-sm flex-shrink-0 ${colors[ins.color]||'text-blue-400'}">${ins.icon}</div>
+      <div class="text-xs text-gray-400 leading-relaxed">${ins.text}</div>
+    </div>`).join('') || '<div class="text-gray-600 text-xs">Coletando dados históricos...</div>';
+}
+
+function renderHeatmap(heatmap) {
+  if(!heatmap || heatmap.length === 0) {
+    document.getElementById('heatmap-wrap').innerHTML = '<div class="text-gray-600 text-sm py-4">Dados insuficientes para o heatmap.</div>';
+    return;
+  }
+  const maxVal = Math.max(...heatmap.flatMap(r => r.months.map(m => m.avg_bonus)), 1);
+  let html = `<table class="w-full text-xs" style="min-width:500px"><thead><tr><th class="text-left text-gray-600 font-normal pb-1 pr-2 w-24">Programa</th>`;
+  heatmap[0].months.forEach(m => {
+    html += `<th class="text-center text-gray-600 font-normal pb-1 w-8">${m.month_name}</th>`;
+  });
+  html += '</tr></thead><tbody>';
+  heatmap.forEach(row => {
+    const color = PROG_COLORS[row.program] || '#6B7280';
+    html += `<tr><td class="pr-2 py-1 text-gray-400 truncate" style="max-width:90px">${row.program}</td>`;
+    row.months.forEach(m => {
+      const alpha = m.avg_bonus > 0 ? (m.avg_bonus/maxVal*0.75+0.1).toFixed(2) : '0.04';
+      const r = parseInt(color.slice(1,3),16), g = parseInt(color.slice(3,5),16), b = parseInt(color.slice(5,7),16);
+      html += `<td class="text-center py-1"><div class="mx-auto rounded" style="width:22px;height:18px;background:rgba(${r},${g},${b},${alpha})" title="${m.month_name}: ${m.avg_bonus}% (${m.count} campanhas)"></div></td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('heatmap-wrap').innerHTML = html;
+}
+
+function renderDuration(d) {
+  const dist = d.duration_distribution || {};
+  const labels = {flash_lt24h:'Flash (< 24h)',d1_3:'1–3 dias',d4_7:'4–7 dias',d8_15:'8–15 dias',d15_plus:'15+ dias'};
+  const colors = {flash_lt24h:'#EF4444',d1_3:'#F59E0B',d4_7:'#3B82F6',d8_15:'#8B5CF6',d15_plus:'#10B981'};
+  const total = Object.values(dist).reduce((s,v)=>s+(v.count||0),0) || 1;
+  document.getElementById('duration-bars').innerHTML = Object.entries(labels).map(([k,lbl]) => {
+    const v = dist[k] || {count:0,pct:0};
+    return `<div class="flex items-center gap-2">
+      <div class="text-xs text-gray-400 w-24">${lbl}</div>
+      <div class="flex-1 h-4 bg-gray-800 rounded overflow-hidden">
+        <div class="h-full rounded" style="width:${v.pct}%;background:${colors[k]}"></div>
+      </div>
+      <div class="text-xs text-gray-500 w-10 text-right">${v.pct}%</div>
+    </div>`;
+  }).join('');
+}
+
+function renderRank(programs) {
+  const max = programs.length ? programs[0].avg_bonus : 100;
+  document.getElementById('prog-rank').innerHTML = programs.slice(0,5).map((p,i) => {
+    const c = PROG_COLORS[p.program] || '#6B7280';
+    return `<div class="flex items-center gap-2 text-xs">
+      <span class="text-gray-600 w-3">${i+1}</span>
+      <span class="flex-1 text-gray-300 truncate">${p.program}</span>
+      <div class="w-16 h-2 bg-gray-800 rounded overflow-hidden">
+        <div class="h-full rounded" style="width:${Math.round(p.avg_bonus/max*100)}%;background:${c}"></div>
+      </div>
+      <span class="font-medium" style="color:${c}">${p.avg_bonus}%</span>
+    </div>`;
+  }).join('');
+}
+
+function renderSparklines(programs, routeData) {
+  // Para cada programa, mostra a série mensal como sparkline
+  const series = routeData.monthly_series || [];
+  const container = document.getElementById('sparklines');
+  if(series.length === 0) {
+    container.innerHTML = '<div class="text-gray-600 text-sm col-span-2 text-center py-4">Aguardando bootstrap histórico...</div>';
+    return;
+  }
+  // Mostra as principais rotas
+  const routes = [
+    {label:'Livelo → LATAM Pass', color:'#3B82F6'},
+    {label:'Livelo → Smiles', color:'#F59E0B'},
+  ];
+  container.innerHTML = routes.map((r,idx) => {
+    const id = 'sp-canvas-'+idx;
+    return `<div class="flex items-center gap-3 p-3 bg-gray-800/50 rounded-xl">
+      <div class="flex-1">
+        <div class="text-sm font-medium" style="color:${r.color}">${r.label}</div>
+        <div class="text-xs text-gray-500 mt-0.5">Bônus máx: ${routeData.max_bonus_ever||'—'}% · Média: ${routeData.avg_bonus_max||'—'}%</div>
+      </div>
+      <canvas id="${id}" width="90" height="36" style="flex-shrink:0"></canvas>
+    </div>`;
+  }).join('');
+
+  // Desenha sparklines
+  routes.forEach((r,idx) => {
+    const c = document.getElementById('sp-canvas-'+idx);
+    if(!c) return;
+    const data = series.map(m => m.max_bonus);
+    new Chart(c, {type:'line',data:{labels:series.map(m=>m.month),datasets:[{data,borderColor:r.color,backgroundColor:r.color+'15',fill:true,tension:.4,borderWidth:1.5,pointRadius:0}]},options:{responsive:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}}}});
+  });
+}
+
+function checkBootstrap(health) {
+  const incomplete = health.scrapers.filter(s => !s.bootstrap_complete && s.name.includes('passageiro') || s.name.includes('melhoresdestinos'));
+  const banner = document.getElementById('bootstrap-banner');
+  const detail = document.getElementById('bootstrap-detail');
+  if(incomplete.length > 0) {
+    banner.classList.remove('hidden');
+    detail.textContent = `Coletando histórico: ${incomplete.map(s=>`${s.name} (${s.bootstrap_pages} págs, até ${s.bootstrap_oldest||'?'}).`).join(' ')} Os dados aparecerão aqui à medida que são coletados.`;
+  }
+}
+
+load();
+</script>
+{% endblock %}

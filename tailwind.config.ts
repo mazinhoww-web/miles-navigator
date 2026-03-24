@@ -49,11 +49,11 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        latam: {
-          indigo: "hsl(var(--latam-indigo))",
-          coral: "hsl(var(--latam-coral))",
-          navy: "hsl(var(--latam-navy))",
-          deep: "hsl(var(--latam-deep))",
+        brand: {
+          indigo: "hsl(var(--brand-indigo))",
+          coral: "hsl(var(--brand-coral))",
+          navy: "hsl(var(--brand-navy))",
+          deep: "hsl(var(--brand-deep))",
         },
         gold: "hsl(var(--gold))",
         miles: {

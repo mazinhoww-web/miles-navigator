@@ -6,7 +6,7 @@ import {
   LayoutDashboard, CalendarDays, BarChart3, DollarSign,
   TrendingUp, Bookmark, Server, Menu, X, Plane, Bot
 } from "lucide-react";
-import latamIcon from "@/assets/latam-pass-icon.png";
+import brandIcon from "@/assets/brand-icon.png";
 
 const navItems = [
   { label: "Monitor", path: "/", icon: LayoutDashboard },
@@ -52,10 +52,10 @@ export function Sidebar() {
       )}>
         {/* Brand Header */}
         <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border">
-          <img src={latamIcon} alt="LATAM Pass" className="h-8 w-8 object-contain" />
+          <img src={brandIcon} alt="Miles Radar" className="h-8 w-8 object-contain" />
           <div className="flex flex-col">
             <span className="font-heading font-bold text-sm tracking-tight text-foreground">Miles Radar</span>
-            <span className="text-[10px] text-muted-foreground tracking-widest uppercase">LATAM Pass</span>
+            <span className="text-[10px] text-muted-foreground tracking-widest uppercase">Inteligência de Milhas</span>
           </div>
         </div>
 

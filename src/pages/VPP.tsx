@@ -15,7 +15,7 @@ import { motion } from "framer-motion";
 import type { VppCampaign } from "@/types/api";
 
 const MONTHS_OPTIONS = [3, 6, 12, 18, 24, 36];
-const VPP_TARGETS: Record<string, number> = { Smiles: 16, "LATAM Pass": 25, "Azul Fidelidade": 14 };
+const VPP_TARGETS: Record<string, number> = { Smiles: 16, "Azul Fidelidade": 14 };
 const tooltipStyle = { background: 'hsl(235 30% 8% / 0.95)', border: '1px solid hsl(235 18% 14%)', borderRadius: 8 };
 
 export default function VPP() {
@@ -64,8 +64,7 @@ export default function VPP() {
       {/* Reference cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard label="Smiles" value="R$16,00/1k" sub="valor-alvo Melhores Destinos" accent="gold" delay={1} />
-        <KpiCard label="LATAM Pass" value="R$25,00/1k" sub="valor-alvo Melhores Destinos" accent="brand" delay={2} />
-        <KpiCard label="Azul Fidelidade" value="R$14,00/1k" sub="valor-alvo Melhores Destinos" accent="purple" delay={3} />
+        <KpiCard label="Azul Fidelidade" value="R$14,00/1k" sub="valor-alvo Melhores Destinos" accent="purple" delay={2} />
       </div>
 
       {/* Controls */}

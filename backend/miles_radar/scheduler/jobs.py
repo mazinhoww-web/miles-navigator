@@ -6,7 +6,6 @@ Correções:
          e cada scraper define seu próprio padrão de paginação
 """
 import asyncio, random, datetime as dt
-from datetime import datetime
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from miles_radar.logger import logger
@@ -190,71 +189,25 @@ def _load_scrapers():
     return scrapers
 
 
-def create_scheduler() -> AsyncIOScheduler:
-    scheduler = AsyncIOScheduler(timezone="America/Sao_Paulo")
-    scrapers = _load_scrapers()
-    for sc in scrapers:
-        interval = _jitter(sc.interval_minutes)
-        scheduler.add_job(_run_scraper, IntervalTrigger(minutes=interval),
-            args=[sc], id=f"monitor_{sc.name}", name=f"Monitor:{sc.name}",
-            replace_existing=True, max_instances=1)
-    for sc in scrapers:
-        scheduler.add_job(_run_bootstrap, IntervalTrigger(hours=24),
-            args=[sc, settings.bootstrap_months],
-            id=f"bootstrap_{sc.name}", name=f"Bootstrap:{sc.name}",
-            replace_existing=True, max_instances=1, next_run_time=None)
-    logger.info(f"[Scheduler] {len(scrapers)} scrapers registrados")
-
-    # Health check a cada 30 minutos
-    from miles_radar.scheduler.health_check import check_scraper_health
-    scheduler.add_job(
-        check_scraper_health,
-        trigger=IntervalTrigger(minutes=30),
-        id="health_check",
-        name="Health Check",
-        replace_existing=True,
-        max_instances=1,
-    )
-    logger.info("[Scheduler] Health check agendado a cada 30 min")
-
-    # Apify sync — ativo automaticamente quando APIFY_TOKEN está configurado
-    if settings.apify_token:
-        scheduler.add_job(
-            apify_sync_job,
-            trigger=IntervalTrigger(minutes=30),
-            id="apify_sync",
-            name="Apify Sync — todas as fontes",
-            replace_existing=True,
-            max_instances=1,
-        )
-        logger.info("[Scheduler] Apify sync agendado a cada 30 min")
-
-    return scheduler
-
-
-# ─── Apify Sync Job (substitui scrapers Playwright por Actors na nuvem) ──────
-
 async def apify_sync_job():
     """
-    Job centralizado que sincroniza todas as 14 fontes via Apify REST API.
-    Roda a cada 30 minutos. Ativa-se automaticamente quando APIFY_TOKEN está configurado.
+    Job centralizado que sincroniza todas as 14 fontes via Apify Cloud.
+    Roda a cada 30 minutos. Usa ApifyClient para buscar datasets dos Actors.
+    Só executa se APIFY_TOKEN estiver configurado.
     """
-    from datetime import timedelta
-    from miles_radar.scrapers.apify_client import ApifyClient
-    from miles_radar.parsers.campaign_parser import CampaignParser
-    from miles_radar.models.database import SessionLocal
-    from miles_radar.models.campaign import Campaign, ScrapeRun
-    from miles_radar.notifier.whatsapp import send_campaign_alert
-
     if not settings.apify_token:
         logger.debug("[apify_sync] APIFY_TOKEN não configurado — job ignorado")
         return
 
+    from miles_radar.scrapers.apify_client import ApifyClient
+    from miles_radar.parsers.campaign_parser import CampaignParser
+    from miles_radar.models.campaign import Campaign
+
     client = ApifyClient()
     parser = CampaignParser()
-    since = datetime.utcnow() - timedelta(hours=1)
+    since = dt.datetime.utcnow() - dt.timedelta(hours=1)
 
-    ACTOR_MAP = {
+    actor_map = {
         "passageirodeprimeira": settings.apify_actor_passageirodeprimeira,
         "melhoresdestinos":     settings.apify_actor_melhoresdestinos,
         "mestredasmilhas":      settings.apify_actor_mestredasmilhas,
@@ -274,47 +227,65 @@ async def apify_sync_job():
     db = SessionLocal()
     total_new = 0
     try:
-        for source_name, actor_id in ACTOR_MAP.items():
+        for source_name, actor_id in actor_map.items():
             if not actor_id:
                 continue
-            run = ScrapeRun(source_name=source_name, is_bootstrap=False,
-                            started_at=datetime.utcnow(), status="running")
-            db.add(run)
-            db.commit()
-            t0 = datetime.utcnow()
-            found = 0
-            new_count = 0
             try:
                 items = await client.sync_source(source_name, actor_id, since)
-                found = len(items)
                 for item in items:
                     campaign = parser.parse(item)
-                    if not campaign:
-                        continue
-                    existing = db.query(Campaign).filter(
-                        Campaign.content_hash == campaign.content_hash
-                    ).first()
-                    if not existing:
-                        db.add(campaign)
-                        db.commit()
-                        db.refresh(campaign)
-                        new_count += 1
-                        total_new += 1
-                        try:
-                            await send_campaign_alert(campaign)
-                        except Exception as e:
-                            logger.warning(f"[apify_sync] Alerta falhou: {e}")
-                run.status = "ok"
+                    if campaign:
+                        existing = db.query(Campaign).filter(
+                            Campaign.content_hash == campaign.content_hash
+                        ).first()
+                        if not existing:
+                            db.add(campaign)
+                            total_new += 1
+                db.commit()
             except Exception as e:
                 logger.error(f"[apify_sync] Erro em {source_name}: {e}")
-                run.status = "error"
-            finally:
-                run.campaigns_found = found
-                run.campaigns_new = new_count
-                run.finished_at = datetime.utcnow()
-                run.duration_seconds = (run.finished_at - t0).total_seconds()
-                db.commit()
-
-        logger.info(f"[apify_sync] Completo. {total_new} campanhas novas.")
     finally:
         db.close()
+
+    logger.info(f"[apify_sync] Sincronização completa — {total_new} campanhas novas")
+
+
+def create_scheduler() -> AsyncIOScheduler:
+    scheduler = AsyncIOScheduler(timezone="America/Sao_Paulo")
+    scrapers = _load_scrapers()
+    for sc in scrapers:
+        interval = _jitter(sc.interval_minutes)
+        scheduler.add_job(_run_scraper, IntervalTrigger(minutes=interval),
+            args=[sc], id=f"monitor_{sc.name}", name=f"Monitor:{sc.name}",
+            replace_existing=True, max_instances=1)
+    for sc in scrapers:
+        scheduler.add_job(_run_bootstrap, IntervalTrigger(hours=24),
+            args=[sc, settings.bootstrap_months],
+            id=f"bootstrap_{sc.name}", name=f"Bootstrap:{sc.name}",
+            replace_existing=True, max_instances=1, next_run_time=None)
+    logger.info(f"[Scheduler] {len(scrapers)} scrapers registrados")
+
+    # Apify sync — roda se APIFY_TOKEN estiver configurado
+    scheduler.add_job(
+        apify_sync_job,
+        trigger=IntervalTrigger(minutes=30),
+        id="apify_sync",
+        name="Apify Sync — todas as fontes",
+        replace_existing=True,
+        max_instances=1,
+    )
+    logger.info("[Scheduler] Apify sync agendado a cada 30 min")
+
+    # Health check a cada 30 minutos
+    from miles_radar.scheduler.health_check import check_scraper_health
+    scheduler.add_job(
+        check_scraper_health,
+        trigger=IntervalTrigger(minutes=30),
+        id="health_check",
+        name="Health Check",
+        replace_existing=True,
+        max_instances=1,
+    )
+    logger.info("[Scheduler] Health check agendado a cada 30 min")
+
+    return scheduler

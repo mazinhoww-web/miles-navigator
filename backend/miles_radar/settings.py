@@ -31,10 +31,10 @@ class Settings(BaseSettings):
 
     # Apify — scraping via cloud actors
     apify_token: str = Field(default="", env="APIFY_TOKEN")
-    apify_actor_passageirodeprimeira: str = Field(default="", env="APIFY_ACTOR_PASSAGEIRODEPRIMEIRA")
-    apify_actor_melhoresdestinos: str = Field(default="", env="APIFY_ACTOR_MELHORESDESTINOS")
-    apify_actor_mestredasmilhas: str = Field(default="", env="APIFY_ACTOR_MESTREDASMILHAS")
-    apify_actor_pontospravoar: str = Field(default="", env="APIFY_ACTOR_PONTOSPRAVOAR")
+    apify_actor_passageirodeprimeira: str = Field(default="apify/website-content-crawler", env="APIFY_ACTOR_PASSAGEIRODEPRIMEIRA")
+    apify_actor_melhoresdestinos: str = Field(default="apify/website-content-crawler", env="APIFY_ACTOR_MELHORESDESTINOS")
+    apify_actor_mestredasmilhas: str = Field(default="apify/website-content-crawler", env="APIFY_ACTOR_MESTREDASMILHAS")
+    apify_actor_pontospravoar: str = Field(default="apify/website-content-crawler", env="APIFY_ACTOR_PONTOSPRAVOAR")
     apify_actor_smiles: str = Field(default="", env="APIFY_ACTOR_SMILES")
     apify_actor_latampass: str = Field(default="", env="APIFY_ACTOR_LATAMPASS")
     apify_actor_azul: str = Field(default="", env="APIFY_ACTOR_AZUL")

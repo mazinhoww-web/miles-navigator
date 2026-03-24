@@ -6,7 +6,7 @@ import {
   LayoutDashboard, CalendarDays, BarChart3, DollarSign,
   TrendingUp, Bookmark, Server, Menu, X, Plane, Bot
 } from "lucide-react";
-import brandIcon from "@/assets/latam-pass-icon.png";
+import brandIcon from "@/assets/brand-icon.png";
 
 const navItems = [
   { label: "Monitor", path: "/", icon: LayoutDashboard },

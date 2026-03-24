@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, CalendarDays, BarChart3, DollarSign,
-  TrendingUp, Bookmark, Server, Menu, X, Radar
+  TrendingUp, Bookmark, Server, Menu, X, Plane
 } from "lucide-react";
+import latamIcon from "@/assets/latam-pass-icon.png";
 
 const navItems = [
   { label: "Monitor", path: "/", icon: LayoutDashboard },
@@ -24,25 +26,44 @@ export function Sidebar() {
       {/* Mobile toggle */}
       <button
         onClick={() => setOpen(!open)}
-        className="fixed top-4 left-4 z-50 lg:hidden glass-card p-2"
+        className="fixed top-4 left-4 z-50 lg:hidden glass-card p-2.5 rounded-lg"
       >
         {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
 
       {/* Overlay */}
-      {open && <div className="fixed inset-0 bg-black/60 z-30 lg:hidden" onClick={() => setOpen(false)} />}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-30 lg:hidden"
+            onClick={() => setOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed top-0 left-0 z-40 h-screen w-56 bg-sidebar border-r border-sidebar-border flex flex-col transition-transform duration-200",
+        "fixed top-0 left-0 z-40 h-screen w-60 bg-sidebar flex flex-col transition-transform duration-300 ease-out",
+        "border-r border-sidebar-border",
         open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
-        <div className="flex items-center gap-2 px-5 py-5 border-b border-sidebar-border">
-          <Radar className="h-6 w-6 text-primary" />
-          <span className="font-heading font-bold text-lg text-foreground">Miles Radar</span>
+        {/* Brand Header */}
+        <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border">
+          <img src={latamIcon} alt="LATAM Pass" className="h-8 w-8 object-contain" />
+          <div className="flex flex-col">
+            <span className="font-heading font-bold text-sm tracking-tight text-foreground">Miles Radar</span>
+            <span className="text-[10px] text-muted-foreground tracking-widest uppercase">LATAM Pass</span>
+          </div>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        {/* Navigation */}
+        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest px-3 mb-2 block">
+            Análise
+          </span>
           {navItems.map((item) => (
             <NavLink
               key={item.path}
@@ -50,37 +71,73 @@ export function Sidebar() {
               end={item.path === "/"}
               onClick={() => setOpen(false)}
               className={({ isActive }) => cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                "group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 relative",
                 isActive
-                  ? "bg-sidebar-accent text-primary"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
               )}
             >
-              <item.icon className="h-4 w-4 shrink-0" />
-              <span className="truncate">{item.label}</span>
-              {item.badge && (
-                <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{item.badge}</span>
+              {({ isActive }) => (
+                <>
+                  {isActive && (
+                    <motion.div
+                      layoutId="sidebar-active"
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 brand-gradient rounded-r-full"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <item.icon className={cn("h-4 w-4 shrink-0 transition-colors", isActive && "text-primary")} />
+                  <span className="truncate">{item.label}</span>
+                  {item.badge && (
+                    <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-md bg-accent/50 text-muted-foreground font-medium">
+                      {item.badge}
+                    </span>
+                  )}
+                </>
               )}
             </NavLink>
           ))}
 
-          <div className="border-t border-sidebar-border my-3" />
+          <div className="border-t border-sidebar-border my-4" />
+
+          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest px-3 mb-2 block">
+            Sistema
+          </span>
 
           <NavLink
             to="/status"
             onClick={() => setOpen(false)}
             className={({ isActive }) => cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+              "group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 relative",
               isActive
-                ? "bg-sidebar-accent text-primary"
-                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
             )}
           >
-            <Server className="h-4 w-4 shrink-0" />
-            <span>Status</span>
-            <span className={cn("ml-auto h-2 w-2 rounded-full", "bg-miles-green")} />
+            {({ isActive }) => (
+              <>
+                {isActive && (
+                  <motion.div
+                    layoutId="sidebar-active"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 brand-gradient rounded-r-full"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <Server className={cn("h-4 w-4 shrink-0 transition-colors", isActive && "text-primary")} />
+                <span>Status</span>
+                <span className="ml-auto h-2 w-2 rounded-full bg-miles-green animate-pulse-soft" />
+              </>
+            )}
           </NavLink>
         </nav>
+
+        {/* Footer */}
+        <div className="px-5 py-4 border-t border-sidebar-border">
+          <div className="flex items-center gap-2">
+            <Plane className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-[10px] text-muted-foreground">Inteligência de Milhas</span>
+          </div>
+        </div>
       </aside>
     </>
   );

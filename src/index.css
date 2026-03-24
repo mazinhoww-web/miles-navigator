@@ -4,42 +4,52 @@
 
 @layer base {
   :root {
-    --background: 222 84% 3%;
-    --foreground: 210 40% 92%;
-    --card: 220 20% 6%;
-    --card-foreground: 210 40% 92%;
-    --popover: 220 20% 6%;
-    --popover-foreground: 210 40% 92%;
-    --primary: 43 96% 56%;
-    --primary-foreground: 222 84% 4%;
-    --secondary: 220 14% 14%;
-    --secondary-foreground: 210 40% 85%;
-    --muted: 220 14% 12%;
-    --muted-foreground: 215 16% 52%;
-    --accent: 220 14% 16%;
-    --accent-foreground: 210 40% 92%;
+    /* LATAM Pass Identity — Deep Indigo × Coral */
+    --background: 230 60% 4%;
+    --foreground: 220 20% 90%;
+    --card: 235 30% 8%;
+    --card-foreground: 220 20% 90%;
+    --popover: 235 30% 8%;
+    --popover-foreground: 220 20% 90%;
+    --primary: 349 100% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 235 20% 14%;
+    --secondary-foreground: 220 20% 80%;
+    --muted: 235 18% 12%;
+    --muted-foreground: 225 12% 50%;
+    --accent: 265 60% 30%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 220 14% 14%;
-    --input: 220 14% 16%;
-    --ring: 43 96% 56%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 235 18% 14%;
+    --input: 235 18% 16%;
+    --ring: 349 100% 45%;
     --radius: 0.75rem;
 
+    /* LATAM Pass brand tokens */
+    --latam-indigo: 265 96% 28%;
+    --latam-coral: 349 100% 45%;
+    --latam-navy: 230 60% 6%;
+    --latam-deep: 235 40% 10%;
     --gold: 43 96% 56%;
-    --gold-muted: 43 96% 56%;
     --blue: 217 91% 60%;
     --green: 160 84% 39%;
-    --red: 0 84% 60%;
-    --purple: 258 90% 66%;
+    --red: 349 100% 45%;
+    --purple: 265 96% 28%;
 
-    --sidebar-background: 220 20% 5%;
-    --sidebar-foreground: 210 20% 70%;
-    --sidebar-primary: 43 96% 56%;
-    --sidebar-primary-foreground: 222 84% 4%;
-    --sidebar-accent: 220 14% 12%;
-    --sidebar-accent-foreground: 210 40% 92%;
-    --sidebar-border: 220 14% 12%;
-    --sidebar-ring: 43 96% 56%;
+    --sidebar-background: 235 35% 6%;
+    --sidebar-foreground: 225 15% 55%;
+    --sidebar-primary: 349 100% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 265 40% 16%;
+    --sidebar-accent-foreground: 220 20% 92%;
+    --sidebar-border: 235 20% 12%;
+    --sidebar-ring: 349 100% 45%;
+
+    /* Gradient tokens */
+    --gradient-brand: linear-gradient(135deg, hsl(265 96% 28%), hsl(349 100% 45%));
+    --gradient-card-hover: linear-gradient(135deg, hsl(265 40% 16% / 0.5), hsl(349 100% 45% / 0.08));
+    --gradient-glow: radial-gradient(ellipse at 50% 0%, hsl(349 100% 45% / 0.15), transparent 70%);
   }
 }
 
@@ -49,6 +59,8 @@
   }
   body {
     @apply bg-background text-foreground font-body antialiased;
+    background-image: var(--gradient-glow);
+    background-attachment: fixed;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
@@ -57,20 +69,59 @@
 
 @layer components {
   .glass-card {
-    @apply rounded-xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-xl;
+    @apply rounded-xl bg-card/60 backdrop-blur-xl;
+    border: 1px solid hsl(var(--border));
+    transition: all 0.2s ease;
+  }
+  .glass-card:hover {
+    border-color: hsl(var(--latam-coral) / 0.2);
+  }
+  .glass-card-elevated {
+    @apply glass-card;
+    box-shadow: 0 4px 24px -4px hsl(var(--latam-indigo) / 0.2),
+                0 0 0 1px hsl(var(--border));
   }
   .flash-pulse {
     animation: flash-glow 2s ease-in-out infinite;
+  }
+  .brand-gradient {
+    background: var(--gradient-brand);
+  }
+  .brand-gradient-text {
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .shimmer {
+    animation: shimmer 2.5s ease-in-out infinite;
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted-foreground) / 0.08) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 200% 100%;
+  }
+  .accent-line {
+    height: 3px;
+    border-radius: 2px;
+    background: var(--gradient-brand);
   }
 }
 
 @keyframes flash-glow {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
-    border-color: rgba(239, 68, 68, 0.3);
+    box-shadow: 0 0 0 0 hsl(var(--latam-coral) / 0);
+    border-color: hsl(var(--latam-coral) / 0.3);
   }
   50% {
-    box-shadow: 0 0 20px 2px rgba(239, 68, 68, 0.25);
-    border-color: rgba(239, 68, 68, 0.7);
+    box-shadow: 0 0 24px 2px hsl(var(--latam-coral) / 0.25);
+    border-color: hsl(var(--latam-coral) / 0.7);
   }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }

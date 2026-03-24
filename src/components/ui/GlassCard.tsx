@@ -29,7 +29,7 @@ export function GlassCard({ children, className, accentColor, flash, onClick, an
         "glass-card p-5",
         accentColor && `border-l-[3px] ${accentMap[accentColor]}`,
         flash && "flash-pulse",
-        onClick && "cursor-pointer hover:bg-card/80 transition-all duration-200 hover:shadow-lg hover:shadow-latam-indigo/5",
+        onClick && "cursor-pointer hover:bg-card/80 transition-all duration-200 hover:shadow-lg hover:shadow-brand-indigo/5",
         className
       )}
     >

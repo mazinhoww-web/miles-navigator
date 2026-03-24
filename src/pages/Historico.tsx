@@ -69,7 +69,7 @@ export default function Historico() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <input
-            placeholder="Destino (ex: LATAM Pass)"
+            placeholder="Destino (ex: Smiles)"
             value={destination}
             onChange={e => setParam("destination", e.target.value)}
             className="glass-card pl-9 pr-3 py-2.5 text-sm bg-transparent text-foreground outline-none w-48 focus:ring-1 focus:ring-primary/30 transition-all"

@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    /* LATAM Pass Identity — Deep Indigo × Coral */
+    /* Miles Radar — Deep Indigo × Coral */
     --background: 230 60% 4%;
     --foreground: 220 20% 90%;
     --card: 235 30% 8%;
@@ -26,11 +26,11 @@
     --ring: 349 100% 45%;
     --radius: 0.75rem;
 
-    /* LATAM Pass brand tokens */
-    --latam-indigo: 265 96% 28%;
-    --latam-coral: 349 100% 45%;
-    --latam-navy: 230 60% 6%;
-    --latam-deep: 235 40% 10%;
+    /* Brand tokens */
+    --brand-indigo: 265 96% 28%;
+    --brand-coral: 349 100% 45%;
+    --brand-navy: 230 60% 6%;
+    --brand-deep: 235 40% 10%;
     --gold: 43 96% 56%;
     --blue: 217 91% 60%;
     --green: 160 84% 39%;
@@ -74,11 +74,11 @@
     transition: all 0.2s ease;
   }
   .glass-card:hover {
-    border-color: hsl(var(--latam-coral) / 0.2);
+    border-color: hsl(var(--brand-coral) / 0.2);
   }
   .glass-card-elevated {
     @apply glass-card;
-    box-shadow: 0 4px 24px -4px hsl(var(--latam-indigo) / 0.2),
+    box-shadow: 0 4px 24px -4px hsl(var(--brand-indigo) / 0.2),
                 0 0 0 1px hsl(var(--border));
   }
   .flash-pulse {
@@ -112,12 +112,12 @@
 
 @keyframes flash-glow {
   0%, 100% {
-    box-shadow: 0 0 0 0 hsl(var(--latam-coral) / 0);
-    border-color: hsl(var(--latam-coral) / 0.3);
+    box-shadow: 0 0 0 0 hsl(var(--brand-coral) / 0);
+    border-color: hsl(var(--brand-coral) / 0.3);
   }
   50% {
-    box-shadow: 0 0 24px 2px hsl(var(--latam-coral) / 0.25);
-    border-color: hsl(var(--latam-coral) / 0.7);
+    box-shadow: 0 0 24px 2px hsl(var(--brand-coral) / 0.25);
+    border-color: hsl(var(--brand-coral) / 0.7);
   }
 }
 

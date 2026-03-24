@@ -11,6 +11,7 @@ const titles: Record<string, string> = {
   "/previsao": "Previsão de Campanhas",
   "/watchlist": "Watchlist",
   "/status": "Status do Sistema",
+  "/apify": "Configuração Apify Actors",
 };
 
 export function Header() {

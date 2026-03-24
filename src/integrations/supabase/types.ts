@@ -14,7 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      apify_actors: {
+        Row: {
+          actor_id: string
+          created_at: string
+          description: string | null
+          display_name: string
+          id: string
+          is_enabled: boolean
+          last_dataset_id: string | null
+          last_items_found: number | null
+          last_new_items: number | null
+          last_run_at: string | null
+          last_run_id: string | null
+          last_run_status: string | null
+          schedule_minutes: number
+          source_name: string
+          updated_at: string
+        }
+        Insert: {
+          actor_id?: string
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_enabled?: boolean
+          last_dataset_id?: string | null
+          last_items_found?: number | null
+          last_new_items?: number | null
+          last_run_at?: string | null
+          last_run_id?: string | null
+          last_run_status?: string | null
+          schedule_minutes?: number
+          source_name: string
+          updated_at?: string
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_enabled?: boolean
+          last_dataset_id?: string | null
+          last_items_found?: number | null
+          last_new_items?: number | null
+          last_run_at?: string | null
+          last_run_id?: string | null
+          last_run_status?: string | null
+          schedule_minutes?: number
+          source_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

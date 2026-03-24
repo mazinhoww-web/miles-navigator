@@ -12,6 +12,7 @@ import Previsao from "@/pages/Previsao";
 import Watchlist from "@/pages/Watchlist";
 import Status from "@/pages/Status";
 import NotFound from "@/pages/NotFound";
+import ApifyConfig from "@/pages/ApifyConfig";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/previsao" element={<Previsao />} />
             <Route path="/watchlist" element={<Watchlist />} />
             <Route path="/status" element={<Status />} />
+            <Route path="/apify" element={<ApifyConfig />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>

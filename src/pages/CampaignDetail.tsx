@@ -16,7 +16,7 @@ import { ChevronRight, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import type { Campaign, BonusTier } from "@/types/api";
 
-const VPP_TARGETS: Record<string, number> = { smiles: 16, azul: 14 };
+const VPP_TARGETS: Record<string, number> = { smiles: 16, azul: 14, pass: 14 };
 
 export default function CampaignDetail() {
   const { id } = useParams();

@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import type { MonthAnalysis, ActivePromosResponse, Campaign } from "@/types/api";
 
-const FILTER_PROGRAMS = ["Todos", "Smiles", "Azul", "⚡ Flash"] as const;
+const FILTER_PROGRAMS = ["Todos", "Smiles", "Azul", "Pass", "⚡ Flash"] as const;
 
 export default function Monitor() {
   const [searchParams, setSearchParams] = useSearchParams();

@@ -65,6 +65,7 @@ export default function VPP() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard label="Smiles" value="R$16,00/1k" sub="valor-alvo Melhores Destinos" accent="gold" delay={1} />
         <KpiCard label="Azul Fidelidade" value="R$14,00/1k" sub="valor-alvo Melhores Destinos" accent="purple" delay={2} />
+        <KpiCard label="Pass" value="R$14,00/1k" sub="valor-alvo Melhores Destinos" accent="blue" delay={3} />
       </div>
 
       {/* Controls */}

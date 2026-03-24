@@ -138,7 +138,7 @@ EVOLUTION_INSTANCE_NAME=milesradar
 ALERT_NUMBERS=5565999999999,5511888888888  # múltiplos números, separados por vírgula
 MIN_BONUS_PCT=40                           # bônus mínimo para alertar (%)
 MAX_CPM=20.0                               # CPM máximo (R$/1k) — não alerta se mais caro
-PROGRAMS_WATCH=LATAM Pass,Smiles           # vazio = monitorar todos os programas
+PROGRAMS_WATCH=Pass,Smiles           # vazio = monitorar todos os programas
 SILENT_START_HOUR=23                       # início do horário silencioso (BRT)
 SILENT_END_HOUR=7                          # fim do horário silencioso (BRT)
 

@@ -76,7 +76,7 @@ curl http://localhost:8000/api/health
 # Testar todas as rotas principais
 curl http://localhost:8000/api/promos/active
 curl http://localhost:8000/api/analysis/month
-curl http://localhost:8000/api/history?destination=LATAM+Pass&months=12
+curl http://localhost:8000/api/history?destination=Pass&months=12
 curl http://localhost:8000/api/vpp/all?months=12
 curl http://localhost:8000/api/predictions/all?horizon=30
 ```
@@ -299,7 +299,7 @@ detected_at:     data em que o scraper encontrou o post (NÃO usar em análises 
 ```python
 VPP_TARGETS = {
     "Smiles": 16.00,          # R$/1k milhas — Melhores Destinos, dez/2025
-    "LATAM Pass": 25.00,      # R$/1k milhas — maior spread do mercado BR
+    "Pass": 25.00,      # R$/1k milhas — maior spread do mercado BR
     "Azul Fidelidade": 14.00, # R$/1k milhas — menor valor-alvo dos 3 principais
 }
 

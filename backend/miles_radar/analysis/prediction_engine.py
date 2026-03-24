@@ -23,7 +23,7 @@ CALENDAR_EVENTS = [
     {
         "name": "Aniversário Caixa Econômica (~165% bônus)",
         "month": 1, "day_start": 1, "day_end": 15,
-        "programs": ["LATAM Pass", "Smiles", "Azul Fidelidade"],
+        "programs": ["Pass", "Smiles", "Azul Fidelidade"],
         "expected_bonus": 165,
         "confidence": "MUITO ALTA",
         "multiplier": 3.0,
@@ -32,7 +32,7 @@ CALENDAR_EVENTS = [
     {
         "name": "Dia do Consumidor",
         "month": 3, "day_start": 10, "day_end": 20,
-        "programs": ["LATAM Pass", "Smiles", "Azul Fidelidade", "Livelo"],
+        "programs": ["Pass", "Smiles", "Azul Fidelidade", "Livelo"],
         "expected_bonus": 80,
         "confidence": "ALTA",
         "multiplier": 2.0,
@@ -40,7 +40,7 @@ CALENDAR_EVENTS = [
     {
         "name": "Dia das Mães",
         "month": 5, "day_start": 5, "day_end": 12,
-        "programs": ["LATAM Pass", "Smiles", "Azul Fidelidade"],
+        "programs": ["Pass", "Smiles", "Azul Fidelidade"],
         "expected_bonus": 70,
         "confidence": "ALTA",
         "multiplier": 1.8,
@@ -56,15 +56,15 @@ CALENDAR_EVENTS = [
     {
         "name": "Aniversário Livelo (5/set)",
         "month": 9, "day_start": 1, "day_end": 10,
-        "programs": ["LATAM Pass", "Smiles", "Azul Fidelidade"],
+        "programs": ["Pass", "Smiles", "Azul Fidelidade"],
         "expected_bonus": 80,
         "confidence": "MUITO ALTA",
         "multiplier": 2.5,
     },
     {
-        "name": "Aniversário LATAM Pass",
+        "name": "Aniversário Pass",
         "month": 9, "day_start": 10, "day_end": 25,
-        "programs": ["LATAM Pass"],
+        "programs": ["Pass"],
         "expected_bonus": 50,
         "confidence": "MUITO ALTA",
         "multiplier": 2.5,
@@ -88,7 +88,7 @@ CALENDAR_EVENTS = [
     {
         "name": "Black Friday",
         "month": 11, "day_start": 20, "day_end": 30,
-        "programs": ["LATAM Pass", "Smiles", "Azul Fidelidade", "Livelo"],
+        "programs": ["Pass", "Smiles", "Azul Fidelidade", "Livelo"],
         "expected_bonus": 80,
         "confidence": "ALTA",
         "multiplier": 2.0,
@@ -96,7 +96,7 @@ CALENDAR_EVENTS = [
     {
         "name": "Natal / Réveillon",
         "month": 12, "day_start": 18, "day_end": 31,
-        "programs": ["LATAM Pass", "Smiles", "Azul Fidelidade"],
+        "programs": ["Pass", "Smiles", "Azul Fidelidade"],
         "expected_bonus": 60,
         "confidence": "ALTA",
         "multiplier": 1.8,
@@ -206,19 +206,19 @@ def predict_route(
 def predict_all_routes(db: Session, horizon_days: int = 30) -> list:
     """Previsão para todas as rotas conhecidas, ordenadas por probabilidade."""
     routes = [
-        ("Livelo", "LATAM Pass"),
+        ("Livelo", "Pass"),
         ("Livelo", "Smiles"),
         ("Livelo", "Azul Fidelidade"),
         ("Esfera", "Smiles"),
-        ("Esfera", "LATAM Pass"),
+        ("Esfera", "Pass"),
         ("Esfera", "Azul Fidelidade"),
-        ("Iupp Itaú", "LATAM Pass"),
+        ("Iupp Itaú", "Pass"),
         ("Iupp Itaú", "Smiles"),
         ("Nubank Rewards", "Smiles"),
         ("C6 Átomos", "Smiles"),
         ("Inter Loop", "Smiles"),
         (None, "Smiles"),       # qualquer origem → Smiles
-        (None, "LATAM Pass"),   # qualquer origem → LATAM Pass
+        (None, "Pass"),   # qualquer origem → Pass
         (None, "Azul Fidelidade"),
     ]
     results = []

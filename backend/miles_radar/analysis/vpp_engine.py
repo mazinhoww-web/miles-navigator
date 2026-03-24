@@ -20,7 +20,7 @@ from miles_radar.logger import logger
 # ── Valores-alvo de referência (Melhores Destinos, dez/2025) ─────────────────
 VPP_TARGETS: dict[str, float] = {
     "Smiles": 16.00,
-    "LATAM Pass": 25.00,
+    "Pass": 25.00,
     "Azul Fidelidade": 14.00,
 }
 
@@ -220,7 +220,7 @@ def compute_vpp_history(db: Session, destination: Optional[str], months: int) ->
 def compute_vpp_all_programs(db: Session, months: int) -> list:
     """Resumo de VPP para todos os programas na janela dada."""
     results = []
-    for prog in ["Smiles", "LATAM Pass", "Azul Fidelidade"]:
+    for prog in ["Smiles", "Pass", "Azul Fidelidade"]:
         data = compute_vpp_history(db, destination=prog, months=months)
         results.append(data)
     return sorted(results, key=lambda x: x.get("vpp_min") or 999)
@@ -247,8 +247,8 @@ def extract_vpp_references_from_text(text: str, source: str, url: str, pub_date:
     t_lower = text.lower()
     program_map = {
         "smiles": "Smiles",
-        "latam pass": "LATAM Pass",
-        "latam": "LATAM Pass",
+        "pass": "Pass",
+        "pass": "Pass",
         "azul fidelidade": "Azul Fidelidade",
         "azul": "Azul Fidelidade",
     }

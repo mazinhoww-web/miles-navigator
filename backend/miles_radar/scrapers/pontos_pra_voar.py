@@ -9,7 +9,7 @@ from miles_radar.scrapers.base import BaseScraper, ScrapedItem
 from miles_radar.logger import logger
 
 PROMO_KW = ["bônus","bonus","transferência","transferencia","milhas","pontos",
-            "smiles","latam","azul","livelo","esfera","promoção","promocao"]
+            "smiles","pass","azul","livelo","esfera","promoção","promocao"]
 
 class PontosPraVoarScraper(BaseScraper):
     name = "pontospravoar"

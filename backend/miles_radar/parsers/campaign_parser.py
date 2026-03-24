@@ -17,8 +17,8 @@ from miles_radar.logger import logger
 PROGRAM_ALIASES = {
     "smiles": "Smiles",
     "gol smiles": "Smiles",
-    "latam pass": "LATAM Pass",
-    "latam": "LATAM Pass",
+    "pass": "Pass",
+    "pass": "Pass",
     "azul fidelidade": "Azul Fidelidade",
     "tudoazul": "Azul Fidelidade",
     "tudo azul": "Azul Fidelidade",
@@ -42,7 +42,7 @@ PROMO_TYPE_KEYWORDS = {
     "transfer_bonus": ["transferência", "transferencia", "transferir", "bônus na transferência"],
     "direct_purchase": ["compra de milhas", "compra de pontos", "comprar milhas", "comprar pontos"],
     "club_signup": ["assine o clube", "adesão ao clube", "novo assinante", "assinar clube"],
-    "club_combo": ["clube livelo", "clube smiles", "clube azul", "clube latam", "clube + transferência"],
+    "club_combo": ["clube livelo", "clube smiles", "clube azul", "clube pass", "clube + transferência"],
     "flash_sale": ["só hoje", "somente hoje", "apenas hoje", "relâmpago", "flash"],
 }
 
@@ -51,8 +51,8 @@ FLASH_KEYWORDS = ["só hoje", "somente hoje", "apenas hoje", "relâmpago", "flas
 
 DEST_PROGRAMS = {
     "smiles": "Smiles",
-    "latam pass": "LATAM Pass",
-    "latam": "LATAM Pass",
+    "pass": "Pass",
+    "pass": "Pass",
     "azul fidelidade": "Azul Fidelidade",
     "tudoazul": "Azul Fidelidade",
     "tudo azul": "Azul Fidelidade",
@@ -135,7 +135,7 @@ class CampaignParser:
             return None
 
     def _is_miles_promo(self, text: str) -> bool:
-        kws = ["milhas", "pontos", "smiles", "latam pass", "azul fidelidade",
+        kws = ["milhas", "pontos", "smiles", "pass", "azul fidelidade",
                "livelo", "esfera", "bônus", "bonus", "transferência", "transferencia"]
         return sum(1 for kw in kws if kw in text) >= 2
 
@@ -143,8 +143,8 @@ class CampaignParser:
         # Padrões explícitos: "pontos Livelo para Smiles"
         patterns = [
             r'(?:transfer[ie]r|enviar|mover)\s+pontos?\s+(?:do?a?\s+)?(\w[\w\s]+?)(?:\s+para|\s+ao|\s+à)',
-            r'pontos?\s+(?:do?a?\s+)?(\w[\w\s]+?)\s+(?:para|ao|à)\s+(?:smiles|latam|azul)',
-            r'(?:da?\s+)?(\w[\w\s]+?)\s+(?:para|ao|à)\s+(?:smiles|latam|azul)',
+            r'pontos?\s+(?:do?a?\s+)?(\w[\w\s]+?)\s+(?:para|ao|à)\s+(?:smiles|pass|azul)',
+            r'(?:da?\s+)?(\w[\w\s]+?)\s+(?:para|ao|à)\s+(?:smiles|pass|azul)',
         ]
         for pattern in patterns:
             m = re.search(pattern, text, re.I)
@@ -160,13 +160,13 @@ class CampaignParser:
         return None
 
     def _extract_destination(self, text: str) -> Optional[str]:
-        # Tenta programa mais específico primeiro (evita "latam" capturar onde deveria ser "latam pass")
-        for alias in ["azul fidelidade", "tudoazul", "tudo azul", "latam pass", "smiles"]:
+        # Tenta programa mais específico primeiro (evita "pass" capturar onde deveria ser "pass")
+        for alias in ["azul fidelidade", "tudoazul", "tudo azul", "pass", "smiles"]:
             if alias in text:
                 return DEST_PROGRAMS[alias]
-        # Fallback latam genérico
-        if "latam" in text:
-            return "LATAM Pass"
+        # Fallback pass genérico
+        if "pass" in text:
+            return "Pass"
         return None
 
     def _extract_bonus_tiers(self, text: str) -> List[BonusTier]:

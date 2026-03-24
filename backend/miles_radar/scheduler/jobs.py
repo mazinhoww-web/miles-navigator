@@ -163,8 +163,8 @@ def _load_scrapers():
     scrapers = []
     from miles_radar.scrapers.passageiro_de_primeira import PassageiroDePrimeiraScraper
     from miles_radar.scrapers.smiles import SmilesScraper
-    from miles_radar.scrapers.latam_pass import LatamPassScraper
-    scrapers.extend([PassageiroDePrimeiraScraper, SmilesScraper, LatamPassScraper])
+    from miles_radar.scrapers.pass_scraper import PassScraper
+    scrapers.extend([PassageiroDePrimeiraScraper, SmilesScraper, PassScraper])
 
     phase2b = [
         ("miles_radar.scrapers.azul", "AzulScraper"),
@@ -213,7 +213,7 @@ async def apify_sync_job():
         "mestredasmilhas":      settings.apify_actor_mestredasmilhas,
         "pontospravoar":        settings.apify_actor_pontospravoar,
         "smiles":               settings.apify_actor_smiles,
-        "latampass":            settings.apify_actor_latampass,
+        "pass":                  settings.apify_actor_pass,
         "azul":                 settings.apify_actor_azul,
         "livelo":               settings.apify_actor_livelo,
         "esfera":               settings.apify_actor_esfera,

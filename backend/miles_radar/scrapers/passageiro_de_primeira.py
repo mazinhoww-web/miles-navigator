@@ -12,7 +12,7 @@ from miles_radar.logger import logger
 
 PROMO_KEYWORDS = [
     "transferência", "transferencia", "bônus", "bonus",
-    "smiles", "latam pass", "azul fidelidade", "tudoazul",
+    "smiles", "pass", "azul fidelidade", "tudoazul",
     "livelo", "esfera", "milhas", "pontos", "compra",
     "flash", "hoje", "promoção", "promocao"
 ]
@@ -26,7 +26,7 @@ class PassageiroDePrimeiraScraper(BaseScraper):
     # Categorias com maior densidade de promoções
     PROMO_CATEGORIES = [
         "/categorias/smiles/",
-        "/categorias/latam-pass/",
+        "/categorias/pass/",
         "/categorias/azul-fidelidade/",
         "/categorias/livelo/",
         "/categorias/esfera/",

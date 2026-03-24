@@ -24,7 +24,7 @@ Extraia os campos abaixo do texto de post/artigo fornecido e retorne APENAS um J
 Campos a extrair:
 {
   "origin_program": "string ou null — programa de onde saem os pontos (Livelo, Esfera, Iupp Itaú, Nubank Rewards, C6 Átomos, Inter Loop, Sicoob, Caixa Econômica)",
-  "destination_program": "string ou null — programa para onde vão as milhas (Smiles, LATAM Pass, Azul Fidelidade)",
+  "destination_program": "string ou null — programa para onde vão as milhas (Smiles, Pass, Azul Fidelidade)",
   "promo_type": "transfer_bonus | direct_purchase | club_combo | club_signup | flash_sale | other",
   "is_flash": "boolean — true se duração < 24h ou palavras 'só hoje', 'relâmpago', 'somente hoje'",
   "bonus_tiers": [

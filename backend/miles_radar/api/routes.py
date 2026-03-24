@@ -12,10 +12,10 @@ router = APIRouter(prefix="/api")
 BRT = pytz.timezone("America/Sao_Paulo")
 
 ALL_SCRAPERS = [
-    "passageirodeprimeira","smiles","latampass","azul","livelo","esfera",
+    "passageirodeprimeira","smiles","pass","azul","livelo","esfera",
     "melhoresdestinos","mestredasmilhas","pontospravoar","itau_iupp","nubank","c6","inter","sicoob",
 ]
-VPP_TARGETS = {"Smiles":16.00,"LATAM Pass":25.00,"Azul Fidelidade":14.00}
+VPP_TARGETS = {"Smiles":16.00,"Pass":25.00,"Azul Fidelidade":14.00}
 
 
 @router.get("/health")
@@ -160,7 +160,7 @@ async def trigger_scrape(source:str=Query(...), db:Session=Depends(get_db)):
     scraper_map = {
         "passageirodeprimeira":("miles_radar.scrapers.passageiro_de_primeira","PassageiroDePrimeiraScraper"),
         "smiles":("miles_radar.scrapers.smiles","SmilesScraper"),
-        "latampass":("miles_radar.scrapers.latam_pass","LatamPassScraper"),
+        "pass":("miles_radar.scrapers.pass_scraper","PassScraper"),
         "azul":("miles_radar.scrapers.azul","AzulScraper"),
         "livelo":("miles_radar.scrapers.livelo","LiveloScraper"),
         "esfera":("miles_radar.scrapers.esfera","EsferaScraper"),
@@ -220,7 +220,7 @@ def _calc_vpp(c:Campaign,vpp_target:float)->list:
 @router.get("/history")
 def route_history(
     origin: Optional[str] = Query(None, description="Programa de origem (ex: Livelo)"),
-    destination: Optional[str] = Query(None, description="Programa destino (ex: LATAM Pass)"),
+    destination: Optional[str] = Query(None, description="Programa destino (ex: Pass)"),
     months: int = Query(12, description="Janela temporal: 3, 6, 12, 18, 24 ou 36"),
     db: Session = Depends(get_db),
 ):
@@ -269,7 +269,7 @@ def history_insights(
     from miles_radar.models.campaign import Campaign
 
     insights = []
-    programs = ["Smiles", "LATAM Pass", "Azul Fidelidade"]
+    programs = ["Smiles", "Pass", "Azul Fidelidade"]
 
     for dest in programs:
         data = compute_route_history(db, origin=None, destination=dest, months=months)
@@ -320,7 +320,7 @@ def history_insights(
         "program": "Todos",
         "icon": "📅",
         "color": "blue",
-        "text": "Setembro concentra 4 aniversários simultâneos (Livelo, LATAM Pass, Azul, Smiles). Historicamente o melhor mês do ano para transferências bonificadas.",
+        "text": "Setembro concentra 4 aniversários simultâneos (Livelo, Pass, Azul, Smiles). Historicamente o melhor mês do ano para transferências bonificadas.",
     })
 
     return {"months": months, "insights": insights[:8]}

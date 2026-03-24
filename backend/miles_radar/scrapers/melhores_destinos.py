@@ -18,7 +18,7 @@ VPP_PATTERNS = [
 ]
 
 PROMO_KW = ["bônus", "bonus", "transferência", "transferencia", "milhas",
-            "pontos", "smiles", "latam", "azul", "livelo", "esfera",
+            "pontos", "smiles", "pass", "azul", "livelo", "esfera",
             "promoção", "promocao", "milheiro", "cpm", "valor-alvo"]
 
 class MelhoresDestinosScraper(BaseScraper):
@@ -98,8 +98,8 @@ class MelhoresDestinosScraper(BaseScraper):
         program = None
         if "smiles" in t:
             program = "Smiles"
-        elif "latam" in t:
-            program = "LATAM Pass"
+        elif "pass" in t:
+            program = "Pass"
         elif "azul" in t:
             program = "Azul Fidelidade"
         if not program:

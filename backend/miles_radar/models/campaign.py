@@ -72,7 +72,7 @@ class BonusTier(Base):
     id = Column(Integer, primary_key=True)
     campaign_id = Column(Integer, ForeignKey("campaigns.id"), index=True)
 
-    tier_name = Column(String(100))       # "Base", "Clube LATAM", "Clube + Cartão Itaú", "Diamante"
+    tier_name = Column(String(100))       # "Base", "Clube Pass", "Clube + Cartão Itaú", "Diamante"
     bonus_pct = Column(Float)
     condition = Column(String(500))       # Descrição da condição
     requires_club = Column(Boolean, default=False)
@@ -151,7 +151,7 @@ class VppReference(Base):
     __tablename__ = "vpp_references"
 
     id = Column(Integer, primary_key=True)
-    program = Column(String(100), index=True)       # "Smiles", "LATAM Pass", "Azul Fidelidade"
+    program = Column(String(100), index=True)       # "Smiles", "Pass", "Azul Fidelidade"
     reference_date = Column(DateTime(timezone=False), index=True)
     vpp_perceived = Column(Float)                   # R$/1k milhas — valor-alvo publicado
     source_blog = Column(String(100))

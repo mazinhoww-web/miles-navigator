@@ -13,7 +13,7 @@ EXPECTED_INTERVALS = {
     "passageirodeprimeira": 15,
     "melhoresdestinos": 15,
     "smiles": 30,
-    "latampass": 30,
+    "pass": 30,
     "azul": 30,
     "mestredasmilhas": 30,
     "pontospravoar": 30,

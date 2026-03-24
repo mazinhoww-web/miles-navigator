@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     apify_actor_mestredasmilhas: str = Field(default="apify/website-content-crawler", env="APIFY_ACTOR_MESTREDASMILHAS")
     apify_actor_pontospravoar: str = Field(default="apify/website-content-crawler", env="APIFY_ACTOR_PONTOSPRAVOAR")
     apify_actor_smiles: str = Field(default="", env="APIFY_ACTOR_SMILES")
-    apify_actor_latampass: str = Field(default="", env="APIFY_ACTOR_LATAMPASS")
+    apify_actor_pass: str = Field(default="", env="APIFY_ACTOR_PASS")
     apify_actor_azul: str = Field(default="", env="APIFY_ACTOR_AZUL")
     apify_actor_livelo: str = Field(default="", env="APIFY_ACTOR_LIVELO")
     apify_actor_esfera: str = Field(default="", env="APIFY_ACTOR_ESFERA")

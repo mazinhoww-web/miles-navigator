@@ -78,7 +78,7 @@ def _format_message(campaign: Campaign, historical_avg: float = None) -> str:
     # VPP targets de referência (Melhores Destinos dez/2025)
     VPP_TARGETS = {
         "Smiles": 16.00,
-        "LATAM Pass": 25.00,
+        "Pass": 25.00,
         "Azul Fidelidade": 14.00,
     }
 

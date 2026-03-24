@@ -46,7 +46,7 @@ INSERT INTO public.apify_actors (source_name, display_name, description) VALUES
   ('mestredasmilhas', 'Mestre das Milhas', 'Blog WordPress — dicas de milhas e pontos'),
   ('pontospravoar', 'Pontos pra Voar', 'Blog WordPress — promoções de transferência'),
   ('smiles', 'Smiles', 'Programa de fidelidade GOL — promoções diretas'),
-  ('latampass', 'LATAM Pass', 'Programa de fidelidade LATAM — bônus de transferência'),
+  ('pass', 'Pass', 'Programa de pontos — bônus de transferência'),
   ('azul', 'TudoAzul', 'Programa de fidelidade Azul — promoções e clube'),
   ('livelo', 'Livelo', 'Programa de pontos — transferências bonificadas'),
   ('esfera', 'Esfera', 'Programa Santander — campanhas de bônus'),

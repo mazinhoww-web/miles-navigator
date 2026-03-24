@@ -16,10 +16,10 @@ export function OpBadge({ vppReal, vppTarget, classification, className }: OpBad
     : economy > 1 ? 'BOM'
     : economy > 0 ? 'NEUTRO'
     : 'AGUARDAR';
-  const cls = label === 'EXCELENTE' ? 'bg-green-500/15 text-green-400'
-            : label === 'BOM'       ? 'bg-blue-500/12 text-blue-400'
-            : label === 'NEUTRO'    ? 'bg-gray-500/15 text-gray-400'
-            : label === 'AGUARDAR'  ? 'bg-red-500/15 text-red-400'
-            : 'bg-gray-500/15 text-gray-400';
-  return <span className={cn("text-xs px-2 py-0.5 rounded-full font-semibold", cls, className)}>{label}</span>;
+  const cls = label === 'EXCELENTE' ? 'bg-emerald-500/12 text-emerald-400 border-emerald-500/20'
+            : label === 'BOM'       ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+            : label === 'NEUTRO'    ? 'bg-secondary text-muted-foreground border-border'
+            : label === 'AGUARDAR'  ? 'bg-primary/12 text-primary border-primary/20'
+            : 'bg-secondary text-muted-foreground border-border';
+  return <span className={cn("text-[10px] px-2.5 py-1 rounded-md font-bold tracking-wider border", cls, className)}>{label}</span>;
 }

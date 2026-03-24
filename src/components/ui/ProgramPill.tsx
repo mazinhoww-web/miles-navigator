@@ -7,11 +7,11 @@ interface ProgramPillProps {
 
 export function ProgramPill({ name, className }: ProgramPillProps) {
   const n = name?.toLowerCase() ?? '';
-  const cls = n.includes('smiles')  ? 'bg-yellow-100 text-yellow-900'
-            : n.includes('latam')   ? 'bg-blue-100 text-blue-900'
-            : n.includes('azul')    ? 'bg-purple-100 text-purple-900'
-            : n.includes('livelo')  ? 'bg-rose-100 text-rose-900'
-            : n.includes('esfera')  ? 'bg-green-100 text-green-900'
-            : 'bg-muted text-muted-foreground';
-  return <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", cls, className)}>{name}</span>;
+  const cls = n.includes('latam')   ? 'bg-primary/15 text-primary border border-primary/20'
+            : n.includes('smiles')  ? 'bg-amber-500/12 text-amber-400 border border-amber-500/20'
+            : n.includes('azul')    ? 'bg-blue-500/12 text-blue-400 border border-blue-500/20'
+            : n.includes('livelo')  ? 'bg-rose-500/12 text-rose-400 border border-rose-500/20'
+            : n.includes('esfera')  ? 'bg-emerald-500/12 text-emerald-400 border border-emerald-500/20'
+            : 'bg-secondary text-muted-foreground border border-border';
+  return <span className={cn("text-[10px] px-2 py-0.5 rounded-md font-semibold tracking-wide uppercase", cls, className)}>{name}</span>;
 }

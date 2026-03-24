@@ -164,7 +164,7 @@ APIFY_ACTOR_MELHORESDESTINOS=username/melhores-destinos
 APIFY_ACTOR_MESTREDASMILHAS=username/mestre-das-milhas
 APIFY_ACTOR_PONTOSPRAVOAR=username/pontos-pra-voar
 APIFY_ACTOR_SMILES=username/smiles-promo
-APIFY_ACTOR_LATAMPASS=username/latam-pass-promo
+APIFY_ACTOR_FIDELIDADE=username/fidelidade-promo
 APIFY_ACTOR_AZUL=username/tudo-azul-promo
 APIFY_ACTOR_LIVELO=username/livelo-transferencia
 APIFY_ACTOR_ESFERA=username/esfera-promo
@@ -183,8 +183,8 @@ Cada Actor deve salvar no dataset itens neste formato:
 
 ```json
 {
-  "title": "Livelo transfere com até 80% de bônus para LATAM Pass",
-  "url": "https://www.passageirodeprimeira.com/livelo-latam-80-bonus",
+  "title": "Livelo transfere com até 80% de bônus para programa parceiro",
+  "url": "https://www.passageirodeprimeira.com/livelo-parceiro-80-bonus",
   "publishedAt": "2026-03-24T10:00:00Z",
   "crawledAt": "2026-03-24T10:05:00Z",
   "bodyText": "Texto limpo do artigo sem HTML...",
@@ -203,7 +203,7 @@ Para blogs WordPress (passageirodeprimeira, melhoresdestinos, mestredasmilhas, p
   - Link selector: `a[href*="/milhas"], a[href*="/promo"], a[href*="/bonus"]`
   - Page function: extrai title, url, publishedAt, bodyText
 
-Para sites dinâmicos (Smiles, LATAM, Azul, Livelo, Esfera):
+Para sites dinâmicos (Smiles, Azul, Livelo, Esfera):
 → **Actor: `apify/playwright-scraper`** com proxy residencial rotacionado.
 
 **Dica:** Usar o Actor `apify/website-content-crawler` para blogs estáticos — zero configuração, extrai texto limpo automaticamente.
@@ -234,7 +234,7 @@ async def apify_sync_job():
         "mestredasmilhas":      settings.APIFY_ACTOR_MESTREDASMILHAS,
         "pontospravoar":        settings.APIFY_ACTOR_PONTOSPRAVOAR,
         "smiles":               settings.APIFY_ACTOR_SMILES,
-        "latampass":            settings.APIFY_ACTOR_LATAMPASS,
+        "fidelidade":           settings.APIFY_ACTOR_FIDELIDADE,
         "azul":                 settings.APIFY_ACTOR_AZUL,
         "livelo":               settings.APIFY_ACTOR_LIVELO,
         "esfera":               settings.APIFY_ACTOR_ESFERA,
@@ -298,7 +298,7 @@ class Settings(BaseSettings):
     APIFY_ACTOR_MESTREDASMILHAS: str = ""
     APIFY_ACTOR_PONTOSPRAVOAR: str = ""
     APIFY_ACTOR_SMILES: str = ""
-    APIFY_ACTOR_LATAMPASS: str = ""
+    APIFY_ACTOR_FIDELIDADE: str = ""
     APIFY_ACTOR_AZUL: str = ""
     APIFY_ACTOR_LIVELO: str = ""
     APIFY_ACTOR_ESFERA: str = ""
@@ -332,7 +332,7 @@ httpx>=0.27.0       # já deve existir; usado pelo LLMParser
 ### Fase B — Substituição (semana 2)
 1. Confirmar que dados chegam corretamente via Apify
 2. Desativar scrapers Playwright dos 3 fontes migradas
-3. Migrar fontes oficiais: smiles, latampass, azul (precisam de actor com proxy)
+3. Migrar fontes oficiais: smiles, fidelidade, azul (precisam de actor com proxy)
 4. Migrar agregadores: livelo, esfera
 5. Migrar bancos: itau_iupp, nubank, c6, inter, sicoob
 

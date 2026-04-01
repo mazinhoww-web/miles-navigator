@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "companylens": {
+      "command": "npx",
+      "args": ["-y", "companylens-mcp"]
+    }
+  }
+}
